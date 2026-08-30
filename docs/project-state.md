@@ -42,15 +42,14 @@ Erreurs typées. Secrets côté serveur. Décisions dans `docs/adr/`.
 
 - [x] Discovery, Product Brief, Stack, Architecture, Plan, ADR (docs/).
 - [x] **Slice 0 — Fondations** : scaffold Next 16 + TS strict + Tailwind + Drizzle/Neon + Better Auth + Vitest + Playwright + ESLint/Prettier + CI. Migration initiale générée.
-      Build prod OK. Tests unitaires (3) + e2e (2, desktop+mobile) verts.
-      Git initialisé (commit "Slice 0").
-- [ ] Slice 1 — Authentication (register/login, RBAC, seed admin).
-- [ ] Slices 2+ — voir `docs/implementation-plan.md`.
+- [x] **Slice 1 — Authentication** : client/serveur Better Auth, pages connexion/inscription,
+      en-tête avec session, déconnexion, RBAC, seed admin. Vérifié en réel sur un Postgres 17 local.
+- [ ] Slice 2 — Catalogue public.
+- [ ] Slices 3+ — voir `docs/implementation-plan.md`.
 
 ## Prochaine tâche
 
-- **Slice 1 — Authentication.** Configurer le client/serveur Better Auth, la page connexion,
-  la page d'inscription, la protection des routes admin et un seed utilisateur admin.
+- **Slice 2 — Catalogue public** (liste, recherche, filtres, page produit + seed produits).
 
 ## Problèmes connus
 
@@ -58,5 +57,8 @@ Erreurs typées. Secrets côté serveur. Décisions dans `docs/adr/`.
   le correctif proposé est un downgrade cassant → non appliqué, réévaluer (Note [npm audit]).
 - Le sandbox local : Node v20 (au lieu de 24) et bibliothèques système Playwright installées
   via `install-deps` — OK pour le dev, la CI utilisera Node 24.
-- Better Auth `height`/`handler` : API v1.7 expose `auth.handler` (fonction), pas `auth.handlers`.
-- Playwright : binaire `chromium` téléchargé ; nécessite `npx playwright install --with-deps chromium` en CI.
+- Better Auth v1.7 : l'API route expose `auth.handler` (fonction), pas `auth.handlers` ;
+  `signUpEmail` côté serveur **lève** une erreur (pas de champ `error`) ; table `account` requiert `issuer`.
+- La migration 0001 (colonne `account.issuer`) a été appliquée sur Postgres 17 local.
+- Tests d'intégration auth : exigent `DATABASE_URL` appliqué (local OK ; Neon → OK si `db:migrate`).
+- Playwright en CI : `npx playwright install --with-deps chromium`.

@@ -3,8 +3,16 @@
 > Boutique en ligne d'e-books / licences numériques : catalogue, panier, paiement Stripe
 > (mode test), bibliothèque personnelle et back-office administrateur.
 
-**État : en construction.** La fondation (Slice 0) est posée ; les slices fonctionnelles
-(arrivant) = catalogue, panier, checkout, délivrance d'entitlements.
+**État : en construction.** Fondations (Slice 0) + Authentication (Slice 1) en place.
+Prochaines slices : catalogue, panier, checkout, délivrance d'entitlements.
+
+## Credentials de démonstration (dev local)
+
+| Rôle    | Email              | Mot de passe     |
+|---------|--------------------|------------------|
+| Admin   | `admin@biblio.test` | `Bibli0-Admin!` |
+
+> Créez-le avec `npm run seed:admin` (changez le mot de passe en production).
 
 ## Stack
 
@@ -21,7 +29,7 @@
 | Slice                       | Statut     |
 | --------------------------- | ---------- |
 | 0 — Fondations              | ✅ Done    |
-| 1 — Authentication          | ⬜ à faire |
+| 1 — Authentication          | ✅ Done    |
 | 2 — Catalogue public        | ⬜ à faire |
 | 3 — Panier                  | ⬜ à faire |
 | 4 — Checkout Stripe         | ⬜ à faire |
