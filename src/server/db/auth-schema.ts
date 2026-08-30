@@ -1,10 +1,4 @@
-import {
-  pgTable,
-  text,
-  boolean,
-  timestamp,
-  index,
-} from "drizzle-orm/pg-core";
+import { pgTable, text, boolean, timestamp, index } from "drizzle-orm/pg-core";
 
 /**
  * Tables fournies par Better Auth (drizzle adapter, provider postgresql).

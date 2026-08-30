@@ -6,21 +6,21 @@
 
 ## Matrice de décision
 
-| Couche            | Candidats                          | Choix                      | Version vérifiée | Statut                  | Pourquoi (résumé)                                          | Risques |
-|-------------------|------------------------------------|----------------------------|------------------|-------------------------|------------------------------------------------------------|---------|
-| Framework         | Next.js 16 · 15 · Nuxt/SvelteKit   | **Next.js 16**              | 16.3.x (patches courants) | Active LTS     | SSR + full-stack, App Router, Turbopack, React 19.2, SEO.   | 15 part en EOL oct-2026 → ne pas démarrer dessus. |
-| Runtime           | Node 24 · 22 · 26                  | **Node.js 24**              | 24.x           | **Active LTS** | Support jusqu'au 30 avr 2028. 26 = Current (pas LTS avant oct 2026). | 26 non-LTS → écarté pour prod. |
-| UI framework      | React 19.2 · 19.1 (Canary écarté)  | **React 19.2**              | 19.2.8         | Stable         | Version appariée à Next 16. Canary jamais pour la prod.     | — |
-| CSS               | Tailwind 4.3 · 3.4                 | **Tailwind CSS 4.3**        | 4.3.3          | Stable         | Design system, intégration Next officielle, perf build.     | 4.2 EOL ; plugins à mettre à jour. |
-| Base de données   | PostgreSQL 17 · 16                 | **PostgreSQL 17**           | 17             | Stable         | Relationnel, JSONB, transactions solides pour les ventes.   | Utiliser l'offre serverless gratuite. |
-| ORM / SQL         | Drizzle · Prisma 7                 | **Drizzle**                 | 0.45.x         | Stable         | Contrôle SQL explicite, bundle ~57KB, natif Neon/Edge, pas de codegen, 100% OSS. | Pre-1.0 → épingler les versions. |
-| Validation        | Zod · valibot                      | **Zod**                     | 4.5.x          | Stable         | Dé-facto, bonne DX, partagé client/serveur. V4 est la version courante. | — |
-| Auth              | Better Auth · Auth.js · Clerk      | **Better Auth**             | 1.6.x          | Stable         | TypeScript-first, self-hosted, plugins (RBAC, 2FA), successeur d'Auth.js. | Auth.js = maintenance seule → à éviter pour un nouveau projet. |
-| Paiements         | Stripe Checkout (Session)          | **Stripe Checkout Sessions**| API récente à confirmer | Stable | Hébergé, idempotent, webhooks signés.                         | Ré-vérifier la version d'API exacte à l'init. |
-| Tests unit/integ  | Vitest · Jest                      | **Vitest**                  | 4.1.x          | Stable         | Rapide, natif ESM/TS, compatible Next/drizzle.              | — |
-| Tests e2e         | Playwright · Cypress               | **Playwright**              | 1.60+          | Stable         | Multi-navigateurs, trace viewer, excellent pour le parcours achat. | Pinner la version en CI. |
-| Stockage fichiers | S3 (Cloudflare R2 Free · S3) · FS  | **R2 / S3 compatible**      | —              | Stable         | Fichiers e-books hors du serveur ; liens pré-signés.        | Config bucket + CORS. |
-| Déploiement       | Vercel (gratuit) · Docker          | **Vercel + Neon**           | —              | Stable         | Zero-ops pour Next 16, gratuit, serverless.                 | Limites gratuites ; surveiller. |
+| Couche            | Candidats                         | Choix                        | Version vérifiée          | Statut         | Pourquoi (résumé)                                                                | Risques                                                        |
+| ----------------- | --------------------------------- | ---------------------------- | ------------------------- | -------------- | -------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| Framework         | Next.js 16 · 15 · Nuxt/SvelteKit  | **Next.js 16**               | 16.3.x (patches courants) | Active LTS     | SSR + full-stack, App Router, Turbopack, React 19.2, SEO.                        | 15 part en EOL oct-2026 → ne pas démarrer dessus.              |
+| Runtime           | Node 24 · 22 · 26                 | **Node.js 24**               | 24.x                      | **Active LTS** | Support jusqu'au 30 avr 2028. 26 = Current (pas LTS avant oct 2026).             | 26 non-LTS → écarté pour prod.                                 |
+| UI framework      | React 19.2 · 19.1 (Canary écarté) | **React 19.2**               | 19.2.8                    | Stable         | Version appariée à Next 16. Canary jamais pour la prod.                          | —                                                              |
+| CSS               | Tailwind 4.3 · 3.4                | **Tailwind CSS 4.3**         | 4.3.3                     | Stable         | Design system, intégration Next officielle, perf build.                          | 4.2 EOL ; plugins à mettre à jour.                             |
+| Base de données   | PostgreSQL 17 · 16                | **PostgreSQL 17**            | 17                        | Stable         | Relationnel, JSONB, transactions solides pour les ventes.                        | Utiliser l'offre serverless gratuite.                          |
+| ORM / SQL         | Drizzle · Prisma 7                | **Drizzle**                  | 0.45.x                    | Stable         | Contrôle SQL explicite, bundle ~57KB, natif Neon/Edge, pas de codegen, 100% OSS. | Pre-1.0 → épingler les versions.                               |
+| Validation        | Zod · valibot                     | **Zod**                      | 4.5.x                     | Stable         | Dé-facto, bonne DX, partagé client/serveur. V4 est la version courante.          | —                                                              |
+| Auth              | Better Auth · Auth.js · Clerk     | **Better Auth**              | 1.6.x                     | Stable         | TypeScript-first, self-hosted, plugins (RBAC, 2FA), successeur d'Auth.js.        | Auth.js = maintenance seule → à éviter pour un nouveau projet. |
+| Paiements         | Stripe Checkout (Session)         | **Stripe Checkout Sessions** | API récente à confirmer   | Stable         | Hébergé, idempotent, webhooks signés.                                            | Ré-vérifier la version d'API exacte à l'init.                  |
+| Tests unit/integ  | Vitest · Jest                     | **Vitest**                   | 4.1.x                     | Stable         | Rapide, natif ESM/TS, compatible Next/drizzle.                                   | —                                                              |
+| Tests e2e         | Playwright · Cypress              | **Playwright**               | 1.60+                     | Stable         | Multi-navigateurs, trace viewer, excellent pour le parcours achat.               | Pinner la version en CI.                                       |
+| Stockage fichiers | S3 (Cloudflare R2 Free · S3) · FS | **R2 / S3 compatible**       | —                         | Stable         | Fichiers e-books hors du serveur ; liens pré-signés.                             | Config bucket + CORS.                                          |
+| Déploiement       | Vercel (gratuit) · Docker         | **Vercel + Neon**            | —                         | Stable         | Zero-ops pour Next 16, gratuit, serverless.                                      | Limites gratuites ; surveiller.                                |
 
 ## Alternatives rejetées (et pourquoi)
 
@@ -35,7 +35,7 @@
 
 `docs/adr/001-framework.md` (Next 16), `002-database.md` (Postgres 17 + Drizzle),
 `003-authentication.md` (Better Auth), `004-payments.md` (Stripe, idempotence 2 couches),
-`005-deployment.md` (Vercel + Neon + R2/S3). *(À rédiger formellement à la phase 4.)*
+`005-deployment.md` (Vercel + Neon + R2/S3). _(À rédiger formellement à la phase 4.)_
 
 ## Stratégie de mise à jour
 

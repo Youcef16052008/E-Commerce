@@ -21,10 +21,10 @@ attachés au compte de l'acheteur. Aucune gestion de stock physique ni d'expédi
 
 ## 2. Utilisateurs cibles
 
-| Rôle            | Besoins                                                                 |
-|-----------------|-------------------------------------------------------------------------|
-| Client           | Rechercher, comparer, acheter, télécharger ses e-books, voir ses commandes. |
-| Administrateur   | Gérer catalogue, prix, fichiers, promos, ventes et utilisateurs.         |
+| Rôle             | Besoins                                                                        |
+| ---------------- | ------------------------------------------------------------------------------ |
+| Client           | Rechercher, comparer, acheter, télécharger ses e-books, voir ses commandes.    |
+| Administrateur   | Gérer catalogue, prix, fichiers, promos, ventes et utilisateurs.               |
 | (Option) Éditeur | Publier des œuvres et suivre ses ventes (peut être uni à l'admin pour le MVP). |
 
 ## 3. Scénarios principaux

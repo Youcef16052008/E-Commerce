@@ -26,7 +26,9 @@ export const products = pgTable(
     author: text("author").notNull(),
     genre: text("genre"),
     language: text("language").default("fr"),
-    format: text("format", { enum: ["epub", "pdf"] }).notNull().default("epub"),
+    format: text("format", { enum: ["epub", "pdf"] })
+      .notNull()
+      .default("epub"),
     coverUrl: text("cover_url"),
     fileUrl: text("file_url"),
     priceInCents: integer("price_in_cents").notNull(),
@@ -70,7 +72,10 @@ export const orders = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     paidAt: timestamp("paid_at", { withTimezone: true }),
   },
-  (table) => [index("orders_user_idx").on(table.userId), index("orders_status_idx").on(table.status)],
+  (table) => [
+    index("orders_user_idx").on(table.userId),
+    index("orders_status_idx").on(table.status),
+  ],
 );
 
 export const orderItems = pgTable(

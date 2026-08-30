@@ -18,19 +18,19 @@
 
 ## Avancement
 
-| Slice                     | Statut |
-|---------------------------|--------|
-| 0 — Fondations            | ✅ Done |
-| 1 — Authentication        | ⬜ à faire |
-| 2 — Catalogue public      | ⬜ à faire |
-| 3 — Panier                | ⬜ à faire |
-| 4 — Checkout Stripe       | ⬜ à faire |
-| 5 — Bibliothèque/files    | ⬜ à faire |
-| 6 — Commandes             | ⬜ à faire |
-| 7 — Admin                 | ⬜ à faire |
-| 8 — Dashboard admin       | ⬜ à faire |
+| Slice                       | Statut     |
+| --------------------------- | ---------- |
+| 0 — Fondations              | ✅ Done    |
+| 1 — Authentication          | ⬜ à faire |
+| 2 — Catalogue public        | ⬜ à faire |
+| 3 — Panier                  | ⬜ à faire |
+| 4 — Checkout Stripe         | ⬜ à faire |
+| 5 — Bibliothèque/files      | ⬜ à faire |
+| 6 — Commandes               | ⬜ à faire |
+| 7 — Admin                   | ⬜ à faire |
+| 8 — Dashboard admin         | ⬜ à faire |
 | 9 — Qualité / accessibilité | ⬜ à faire |
-| 10 — Déploiement          | ⬜ à faire |
+| 10 — Déploiement            | ⬜ à faire |
 | 11 — Étude de cas portfolio | ⬜ à faire |
 
 ## Démarrage
@@ -44,17 +44,17 @@ npm run dev                 # http://localhost:3000
 
 ## Commandes
 
-| Commande                | Description |
-|-------------------------|-------------|
-| `npm run dev`           | Serveur de dev |
-| `npm run build`         | Build production |
-| `npm run lint`          | ESLint |
-| `npm run typecheck`     | TypeScript strict |
-| `npm test`              | Tests unitaires / intégration |
-| `npm run test:e2e`      | Tests end-to-end (Playwright) |
-| `npm run db:generate`   | Génère une migration Drizzle |
-| `npm run db:migrate`    | Applique les migrations |
-| `npm run db:studio`     | Inspecteur de base (Drizzle Studio) |
+| Commande              | Description                         |
+| --------------------- | ----------------------------------- |
+| `npm run dev`         | Serveur de dev                      |
+| `npm run build`       | Build production                    |
+| `npm run lint`        | ESLint                              |
+| `npm run typecheck`   | TypeScript strict                   |
+| `npm test`            | Tests unitaires / intégration       |
+| `npm run test:e2e`    | Tests end-to-end (Playwright)       |
+| `npm run db:generate` | Génère une migration Drizzle        |
+| `npm run db:migrate`  | Applique les migrations             |
+| `npm run db:studio`   | Inspecteur de base (Drizzle Studio) |
 
 ## Vérification des versions
 

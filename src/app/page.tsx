@@ -4,12 +4,10 @@ export default function Home() {
       <span className="mb-4 rounded-full border border-neutral-300 px-3 py-1 text-xs uppercase tracking-widest text-neutral-500">
         Librairie numérique
       </span>
-      <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
-        Biblio
-      </h1>
+      <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">Biblio</h1>
       <p className="mt-4 max-w-xl text-lg text-neutral-600">
-        Achetez vos e-books et contenus numériques, retrouvez-les à tout moment
-        dans votre bibliothèque personnelle.
+        Achetez vos e-books et contenus numériques, retrouvez-les à tout moment dans votre
+        bibliothèque personnelle.
       </p>
       <div className="mt-8 flex gap-3">
         <a
