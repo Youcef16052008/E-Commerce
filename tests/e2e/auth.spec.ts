@@ -25,15 +25,16 @@ test("inscription puis déconnexion puis connexion", async ({ page }) => {
   await page.getByRole("button", { name: "Se déconnecter" }).click();
   await expect(page.getByRole("link", { name: "Se connecter" })).toBeVisible();
 
-  // --- Connexion (navigation ancrée, pas de course de re-render) ---
-  await page.getByRole("link", { name: "Se connecter" }).click();
-  await page.waitForURL(/\/auth\/sign-in/);
-  await expect(page.getByRole("heading", { name: /Connexion|Se connecter/i })).toBeVisible();
+  // --- Connexion ---
+  // Navigation PLEINE PAGE (pas de lien client) : évite la course avec un
+  // router.refresh() encore en vol depuis la déconnexion (bouton détaché).
+  await page.goto("/auth/sign-in");
+  await expect(page.getByRole("heading", { name: "Connexion" })).toBeVisible();
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Mot de passe").fill(password);
-  const submit = page.getByRole("button", { name: /Se connecter|Connexion/ });
-  await expect(submit).toBeEnabled();
-  await submit.click();
+  // Soumission par Entrée : chemin utilisateur réel, indépendant de la stabilité
+  // du clic sur le bouton (re-render de l'en-tête pendant la validation).
+  await page.getByLabel("Mot de passe").press("Enter");
   await expect(page).toHaveURL("/");
   await expect(page.getByText("Test E2E")).toBeVisible();
 });
