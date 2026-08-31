@@ -3,11 +3,12 @@ import { test, expect } from "@playwright/test";
 /**
  * Parcours panier e2e : connexion, ajout depuis une fiche, aménagement du panier,
  * retrait. Nécessite base + seed.
+ * Email unique par projet ET par exécution (voir auth.spec.ts).
  */
-const email = `e2e-cart-${Date.now()}@biblio.test`;
 const password = "MotDePasse!123";
 
 test("ajouter un ouvrage au panier et le retirer", async ({ page }) => {
+  const email = `e2e-cart-${Date.now()}-${test.info().project.name}@biblio.test`;
   // Inscription d'un client de test.
   await page.goto("/auth/sign-up");
   await page.getByLabel("Nom").fill("Panier E2E");

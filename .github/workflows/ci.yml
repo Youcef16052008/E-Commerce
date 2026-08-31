@@ -47,6 +47,12 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Apply DB migrations
+        run: npm run db:migrate
+
+      - name: Seed demo data
+        run: npm run seed:all
+
       - name: Unit / integration tests
         run: npm test
 
@@ -55,12 +61,6 @@ jobs:
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
-
-      - name: Apply DB migrations
-        run: npm run db:migrate
-
-      - name: Seed demo data
-        run: npm run seed:all
 
       - name: End-to-end tests
         run: npm run test:e2e

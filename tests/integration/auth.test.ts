@@ -10,18 +10,11 @@ import { auth } from "@/features/authentication/lib/auth";
  * Utilise un email unique pour rester idempotent entre exécutions.
  */
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const runtime = process.env as any;
+import { hasDatabase } from "./has-database";
 
-describe("Authentication (intégration)", () => {
+describe.skipIf(!hasDatabase)("Authentication (intégration)", () => {
   const email = `it-auth-${Date.now()}@biblio.test`;
   const password = "MotDePasse!123";
-
-  beforeAll(() => {
-    if (!runtime.DATABASE_URL) {
-      throw new Error("DATABASE_URL manquant pour les tests d'intégration.");
-    }
-  });
 
   it("signup crée un utilisateur avec rôle client", async () => {
     await auth.api.signUpEmail({

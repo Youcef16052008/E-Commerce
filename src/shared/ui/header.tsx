@@ -11,11 +11,11 @@ export async function Header() {
   const user = await getSessionUser();
 
   return (
-    <header className="flex items-center justify-between border-b border-neutral-200 px-6 py-4">
+    <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-neutral-200 px-4 py-3 sm:px-6 sm:py-4">
       <Link href="/" className="text-lg font-semibold tracking-tight">
         Biblio
       </Link>
-      <nav className="flex items-center gap-4">
+      <nav className="flex flex-wrap items-center gap-x-3 gap-y-1 sm:gap-4">
         <Link
           href="/products"
           className="text-sm font-medium text-neutral-600 hover:text-neutral-900"
@@ -23,7 +23,7 @@ export async function Header() {
           Catalogue
         </Link>
         {user ? (
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <CartLink />
             <Link
               href="/library"
@@ -31,10 +31,16 @@ export async function Header() {
             >
               Bibliothèque
             </Link>
-            <span className="text-sm text-neutral-700">
+            <Link
+              href="/orders"
+              className="text-sm font-medium text-neutral-600 hover:text-neutral-900"
+            >
+              Commandes
+            </Link>
+            <span className="flex items-center gap-2 text-sm text-neutral-700">
               {user.name}
               {user.role === "admin" && (
-                <span className="ml-2 rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-500">
+                <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-500">
                   admin
                 </span>
               )}

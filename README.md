@@ -4,13 +4,14 @@
 > (mode test), bibliothèque personnelle et back-office administrateur.
 
 **État : en construction.** Fondations (0), Authentication (1), Catalogue public (2),
-Panier (3) et Checkout Stripe (4) en place. Prochaine : bibliothèque & téléchargements.
+Panier (3), Checkout Stripe (4), Bibliothèque & téléchargements (5) et Commandes (6)
+en place. Prochaine : Admin (7).
 
 ## Credentials de démonstration (dev local)
 
-| Rôle    | Email              | Mot de passe     |
-|---------|--------------------|------------------|
-| Admin   | `admin@biblio.test` | `Bibli0-Admin!` |
+| Rôle  | Email               | Mot de passe    |
+| ----- | ------------------- | --------------- |
+| Admin | `admin@biblio.test` | `Bibli0-Admin!` |
 
 > Créez-le avec `npm run seed:admin` (changez le mot de passe en production).
 
@@ -34,9 +35,7 @@ Panier (3) et Checkout Stripe (4) en place. Prochaine : bibliothèque & téléch
 | 3 — Panier                  | ✅ Done    |
 | 4 — Checkout Stripe         | ✅ Done    |
 | 5 — Bibliothèque / fichiers | ✅ Done    |
-| 4 — Checkout Stripe         | ⬜ à faire |
-| 5 — Bibliothèque/files      | ⬜ à faire |
-| 6 — Commandes               | ⬜ à faire |
+| 6 — Commandes               | ✅ Done    |
 | 7 — Admin                   | ⬜ à faire |
 | 8 — Dashboard admin         | ⬜ à faire |
 | 9 — Qualité / accessibilité | ⬜ à faire |
@@ -48,23 +47,75 @@ Panier (3) et Checkout Stripe (4) en place. Prochaine : bibliothèque & téléch
 ```bash
 cp .env.example .env        # renseigner DATABASE_URL, BETTER_AUTH_SECRET, etc.
 npm install
-npm run db:migrate          # applique migrations Drizzle (Neon)
+npm run db:migrate          # applique les migrations Drizzle (base vierge / CI)
 npm run dev                 # http://localhost:3000
 ```
 
+> Le dossier `drizzle/meta/` est **versionné** : indispensable pour que
+> `drizzle-kit migrate` fonctionne sur un clone/CI frais. Si votre base existante
+> a été créée avec `npm run db:push`, continuez d'utiliser `db:push` (ne rejouez
+> pas `db:migrate` dessus : les CREATE TABLE seraient dupliqués).
+
 ## Commandes
 
-| Commande              | Description                         |
-| --------------------- | ----------------------------------- |
-| `npm run dev`         | Serveur de dev                      |
-| `npm run build`       | Build production                    |
-| `npm run lint`        | ESLint                              |
-| `npm run typecheck`   | TypeScript strict                   |
-| `npm test`            | Tests unitaires / intégration       |
-| `npm run test:e2e`    | Tests end-to-end (Playwright)       |
-| `npm run db:generate` | Génère une migration Drizzle        |
-| `npm run db:migrate`  | Applique les migrations             |
-| `npm run db:studio`   | Inspecteur de base (Drizzle Studio) |
+| Commande                 | Description                                                       |
+| ------------------------ | ----------------------------------------------------------------- |
+| `npm run dev`            | Serveur de dev                                                    |
+| `npm run build`          | Build production                                                  |
+| `npm run lint`           | ESLint                                                            |
+| `npm run typecheck`      | TypeScript strict                                                 |
+| `npm test`               | Tests unitaires / intégration                                     |
+| `npm run test:e2e`       | Tests end-to-end (Playwright)                                     |
+| `npm run db:generate`    | Génère une migration Drizzle                                      |
+| `npm run db:migrate`     | Applique les migrations                                           |
+| `npm run db:studio`      | Inspecteur de base (Drizzle Studio)                               |
+| `npm run books:generate` | Génère les e-books de démo (`books/`)                             |
+| `npm run books:validate` | Valide les EPUB/PDF (zipfile, mimetype en premier)                |
+| `npm run books:upload`   | Upload les fichiers + mappe `products.file_url`                   |
+| `npm run storage:check`  | Test bout en bout du stockage (upload → presign → 200)            |
+| `npm run storage:minio`  | Met en place MinIO local (serveur, bucket, user, policy, données) |
+
+## Stockage local (démo) — MinIO
+
+Les fichiers ne transitent jamais par l'app : le serveur renvoie des **URLs
+pré-signées SigV4** (15 min) après vérification de l'achat.
+
+```bash
+bash scripts/setup-minio.sh   # télécharge MinIO, démarre :9000, bucket biblio,
+                              # user applicatif + policy, seed + upload des e-books
+cp .env.example .env          # puis renseigner les STORAGE_* affichés
+npm run storage:check         # vérification de bout en bout
+```
+
+Production : Cloudflare **R2** avec les mêmes `STORAGE_*` (ajouter
+`STORAGE_ACCOUNT_ID` à la place de `STORAGE_ENDPOINT`) — aucun changement de code
+(voir `docs/adr/006-storage.md`).
+
+## Catalogue de masse — Project Gutenberg (Gutendex)
+
+Le catalogue démo peut être **importé** (copié) depuis les ~70 000 œuvres du domaine
+public de Project Gutenberg (API Gutendex, sans clé). Après l'import, le site
+**ne dépend plus d'aucune source externe** : métadonnées + EPUB + couvertures vivent
+dans votre base et votre stockage.
+
+```bash
+npm run db:push            # applique la migration additive 0002 (source/license/…)
+npm run seed:products      # convertit les 12 produits démo en USD (boutique mono-devise)
+npm run import:gutenberg   # importe les 500 livres les plus populaires
+```
+
+Personnalisable via `.env` (voir `.env.example`) : `IMPORT_GUTENDEX_LIMIT`,
+`IMPORT_GUTENDEX_LANGUAGES`, `IMPORT_PRICE_CENTS` (défaut **50 → 0,50 USD**),
+`IMPORT_PUBLISHED`, `IMPORT_MIN_DOWNLOADS`, et `GUTENDEX_BASE_URL` (miroir auto-hébergé).
+
+**✅ Validé en réel** : 500 livres importés (0 échec), 512 produits en base,
+500 EPUB + 500 couvertures dans MinIO, tests d'intégration 8/8 sur Neon
+(y compris téléchargement pré-signé → 200 → contenu intact).
+
+- **Licence** : œuvres du domaine public (États-Unis) — licence enregistrée par produit,
+  usage commercial autorisé (`docs/adr/007-catalog-import.md`).
+- **Idempotent** : relançable sans doublon (dédupliqué par `source + source_id`).
+- **Ne jamais utiliser** Z-Library / Anna's Archive / LibGen (contenus piratés).
 
 ## Vérification des versions
 

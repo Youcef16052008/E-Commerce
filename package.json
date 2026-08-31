@@ -21,6 +21,12 @@
     "seed:admin": "tsx scripts/seed-admin.ts",
     "seed:products": "tsx scripts/seed-products.ts",
     "seed:all": "npm run seed:admin && npm run seed:products",
+    "books:generate": "tsx scripts/generate-books.ts",
+    "books:validate": "python3 scripts/validate-books.py",
+    "books:upload": "tsx scripts/upload-books.ts",
+    "storage:minio": "bash scripts/setup-minio.sh",
+    "storage:check": "tsx scripts/check-storage.ts",
+    "import:gutenberg": "tsx scripts/import-gutendex.ts",
     "test:integration": "vitest run tests/integration"
   },
   "dependencies": {
@@ -43,6 +49,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/yazl": "^3.3.1",
     "@vitest/coverage-v8": "^4.1.11",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9",
@@ -52,6 +59,7 @@
     "tailwindcss": "^4",
     "tsx": "^4.23.13",
     "typescript": "^5",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.11",
+    "yazl": "^3.3.1"
   }
 }

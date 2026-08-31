@@ -1,0 +1,74 @@
+[
+  {
+    "slug": "la-mer-des-etoiles",
+    "title": "La Mer des Étoiles",
+    "author": "Camille Rostand",
+    "format": "epub"
+  },
+  {
+    "slug": "l-art-de-bien-coder",
+    "title": "L'Art de bien coder",
+    "author": "Nadia Belkacem",
+    "format": "pdf"
+  },
+  {
+    "slug": "cuisines-du-bassin-mediterraneen",
+    "title": "Cuisines du Bassin Méditerranéen",
+    "author": "Sofia Marchetti",
+    "format": "epub"
+  },
+  {
+    "slug": "les-jardins-de-cordoue",
+    "title": "Les Jardins de Cordoue",
+    "author": "Ibrahim El-Mansour",
+    "format": "epub"
+  },
+  {
+    "slug": "coffee-ritual",
+    "title": "Coffee Ritual",
+    "author": "Jonas Lindqvist",
+    "format": "pdf"
+  },
+  {
+    "slug": "deep-work-in-a-digital-age",
+    "title": "Deep Work in a Digital Age",
+    "author": "Elena Petrova",
+    "format": "epub"
+  },
+  {
+    "slug": "the-silent-tide",
+    "title": "The Silent Tide",
+    "author": "Rory McAllister",
+    "format": "pdf"
+  },
+  {
+    "slug": "astronomy-for-early-risers",
+    "title": "Astronomy for Early Risers",
+    "author": "Tadeo Alvarez",
+    "format": "epub"
+  },
+  {
+    "slug": "petits-feux-de-saison",
+    "title": "Petits Feux de Saison",
+    "author": "Marie-Hélène Courtois",
+    "format": "epub"
+  },
+  {
+    "slug": "l-algorithme-secret",
+    "title": "L'Algorithme Secret",
+    "author": "Karim Ziani",
+    "format": "pdf"
+  },
+  {
+    "slug": "wild-fermentation",
+    "title": "Wild Fermentation",
+    "author": "Ingrid Sorensen",
+    "format": "pdf"
+  },
+  {
+    "slug": "minimal-motion",
+    "title": "Minimal Motion",
+    "author": "Luc Devillers",
+    "format": "pdf"
+  }
+]

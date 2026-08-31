@@ -5,19 +5,18 @@ import { user, cartItems, products } from "@/server/db/schema";
 import { eq } from "drizzle-orm";
 import { addToCart, viewCart } from "@/features/cart/application/cart-service";
 
+import { hasDatabase } from "./has-database";
+
 /**
  * Tests d'intégration du panier contre la base réelle.
  * Nécessite DATABASE_URL + migrations + seed:products.
  */
-const runtime = process.env as Record<string, string>;
-
-describe("Panier (intégration)", () => {
+describe.skipIf(!hasDatabase)("Panier (intégration)", () => {
   const email = `it-cart-${Date.now()}@biblio.test`;
   let userId = "";
   let productId = "";
 
   beforeAll(async () => {
-    if (!runtime.DATABASE_URL) throw new Error("DATABASE_URL manquant.");
     // utilisateur de test
     const ins = await db
       .insert(user)

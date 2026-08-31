@@ -41,18 +41,46 @@
 - **Tests** : unit (prix relu serveur, calcul), intégration (webhook signé idempotent, doublon ignoré), e2e (parcours achat complet via Stripe CLI test + webhook).
 - **Critères** : ne jamais faire confiance au prix client ; `checkout.session.completed` signé et non déjà traité → création entitlement ; panier vidé après paiement.
 
-## Slice 5 — Bibliothèque & téléchargement (P0)
+## Slice 5 — Bibliothèque & téléchargement (P0) ✅ Done
 
 - **User story** : U7 — accès au fichier acheté.
-- **Fichiers** : `features/entitlements/*`, adaptateur R2/S3 (URL pré-signée).
-- **Tests** : unit (résolution entitlement), intégration (accès refusé sans droit), e2e.
-- **Critères** : seul le propriétaire accède ; URL à TTL court ; même produit → un seul entitlement.
+- **Fichiers** : `features/library/*` (page /library, GET /api/me/library,
+  POST /api/me/library/[productId]/download), `src/server/storage/index.ts`
+  (`@aws-sdk/client-s3` + `s3-request-presigner`).
+- **Données** : `products.file_url` = `s3://<bucket>/books/<slug>.<format>` ;
+  e-books de démo générés (`books/`) et validés (`zipfile` : mimetype en premier, stored).
+- **Tests** : unit — `tests/unit/storage.test.ts` (config, parse, **pré-signature SigV4
+  query-string**, TTL) ; intégration — liste, 403 sans entitlement, 404 sans fichier,
+  503 sans config, URL pré-signée + **GET 200 contenu intact** (si stockage configuré).
+- **Critères** : seul le propriétaire accède (autorisation objet) ; URL TTL 15 min ;
+  un seul entitlement par produit (index unique) ; 401/403/404/503 typés.
+- **Stockage** : MinIO local (`scripts/setup-minio.sh`) pour la démo, R2 pour la prod
+  (bascule via `STORAGE_*` uniquement, voir ADR-006).
 
-## Slice 6 — Orders (P1)
+## Slice 5bis — Catalogue de masse (import Gutendex) ✅ Done
+
+- **Objectif** : passer d'une démo de 12 produits à une vraie librairie **sans dépendance
+  externe en production**.
+- **Décision** : importer ~500 œuvres du domaine public depuis Gutendex (Project Gutenberg)
+  dans la base + stockage locaux ; source utilisée uniquement à l'import.
+- **Livré** : `src/features/catalog-import/*` (mapper pur + orchestrateur + dépôt),
+  `scripts/import-gutendex.ts`, migration `drizzle/0002_catalog-import.sql` (additive),
+  `GET /api/covers/gutenberg/[id]`, env `IMPORT_*` + `GUTENDEX_BASE_URL`, ADR-007.
+- **Testing** : 14 tests unitaires mapping + 2 tests orchestrateur (stubs), 41 tests
+  unitaires au total, `tsc`/ESLint/Prettier verts.
+
+## Slice 6 — Commandes / historique (P1) ✅ Done
 
 - **User story** : U7 — historique des commandes, statuts.
-- **Fichiers** : `features/orders/*`, page "mes commandes".
-- **Critères** : statuts cohérents avec le paiement.
+- **Fichiers** : `features/orders/*` (types, libellés de statut, repo, service),
+  page `/orders` (RSC, redirige vers sign-in si non connecté), `GET /api/me/orders`,
+  lien « Commandes » dans l'en-tête.
+- **Données** : `order_items.quantity` (snapshot de la quantité achetée, migration
+  `0003_order-quantity`) ; devises `orders`/`order_items` unifiées **USD**.
+- **Tests** : unit — libellés/styles de statut (5 tests) ; intégration — liste avec
+  articles/quantité/total + isolation entre utilisateurs (2 tests, base réelle).
+- **Critères** : statuts cohérents avec le paiement (pending → paid → fulfilled…) ;
+  totaux relus en base (jamais recalculés côté client) ; aucune fuite entre comptes.
 
 ## Slice 7 — Admin (P0/P1)
 
