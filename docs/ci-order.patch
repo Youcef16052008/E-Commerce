@@ -1,0 +1,30 @@
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 2169dac..6707da4 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -47,6 +47,12 @@ jobs:
+       - name: Typecheck
+         run: npm run typecheck
+ 
++      - name: Apply DB migrations
++        run: npm run db:migrate
++
++      - name: Seed demo data
++        run: npm run seed:all
++
+       - name: Unit / integration tests
+         run: npm test
+ 
+@@ -56,12 +62,6 @@ jobs:
+       - name: Install Playwright browsers
+         run: npx playwright install --with-deps chromium
+ 
+-      - name: Apply DB migrations
+-        run: npm run db:migrate
+-
+-      - name: Seed demo data
+-        run: npm run seed:all
+-
+       - name: End-to-end tests
+         run: npm run test:e2e
+         env:
