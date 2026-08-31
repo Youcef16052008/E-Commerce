@@ -132,3 +132,10 @@ migrations` échouait). Les bases déjà créées via `db:push` (Neon actuelle) 
   (`https://ghp_...@github.com/...`). Ces jetons apparaissent dans l'historique de
   l'invite et peuvent être capturés par des scanners. Utiliser le credential helper
   (`git config --global credential.helper`) ou `gh auth login`.
+- **CI verte** (PR #1, commit `322c0b1`) : Format → Lint → Typecheck → `db:migrate`
+  (journal `drizzle/meta` versionné) → `seed:all` → tests unitaires/intégration →
+  build → e2e (7 verts) — y compris le **vrai bug mobile corrigé** : en-tête non
+  responsive (nom utilisateur recouvrait « Se déconnecter » → pointer-events),
+  passée en `flex-wrap`.
+- **E2E** : emails uniques par projet/exécution + `workers=1` en CI (évite le conflit
+  d'inscription entre projets chromium/mobile partageant un même worker).
