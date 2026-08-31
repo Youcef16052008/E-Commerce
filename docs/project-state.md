@@ -132,10 +132,16 @@ migrations` échouait). Les bases déjà créées via `db:push` (Neon actuelle) 
   (`https://ghp_...@github.com/...`). Ces jetons apparaissent dans l'historique de
   l'invite et peuvent être capturés par des scanners. Utiliser le credential helper
   (`git config --global credential.helper`) ou `gh auth login`.
-- **CI verte** (PR #1, commit `322c0b1`) : Format → Lint → Typecheck → `db:migrate`
+- **CI verte** (PR #1, commit `63f0c18`) : Format → Lint → Typecheck → `db:migrate`
   (journal `drizzle/meta` versionné) → `seed:all` → tests unitaires/intégration →
-  build → e2e (7 verts) — y compris le **vrai bug mobile corrigé** : en-tête non
-  responsive (nom utilisateur recouvrait « Se déconnecter » → pointer-events),
-  passée en `flex-wrap`.
-- **E2E** : emails uniques par projet/exécution + `workers=1` en CI (évite le conflit
-  d'inscription entre projets chromium/mobile partageant un même worker).
+  build → **e2e 8/8 verts (13,2 s, aucun flaky)**.
+- **Correctifs e2e trouvés en CI** (vrais bugs/flakiness, tous résolus) :
+  - `drizzle/meta` gitignoré → `Can't find meta/_journal.json` → versionné ;
+  - test bibliothèque : l'acheteur devait avoir un droit sur le produit sans fichier
+    (sinon 403 avant 404) ;
+  - e2e : email identique partagé entre projets chromium/mobile (conflit
+    d'inscription) → unique par exécution + `workers=1` ;
+  - bug UI mobile réel : en-tête non responsive (nom utilisateur recouvrait
+    « Se déconnecter ») → `flex-wrap` ;
+  - course de navigation après déconnexion (bouton détaché) → connexion par
+    navigation pleine page + soumission Entrée.
