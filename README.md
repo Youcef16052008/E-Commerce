@@ -33,6 +33,7 @@ Panier (3) et Checkout Stripe (4) en place. Prochaine : bibliothèque & téléch
 | 2 — Catalogue public        | ✅ Done    |
 | 3 — Panier                  | ✅ Done    |
 | 4 — Checkout Stripe         | ✅ Done    |
+| 5 — Bibliothèque / fichiers | ✅ Done    |
 | 4 — Checkout Stripe         | ⬜ à faire |
 | 5 — Bibliothèque/files      | ⬜ à faire |
 | 6 — Commandes               | ⬜ à faire |

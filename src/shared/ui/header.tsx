@@ -25,6 +25,12 @@ export async function Header() {
         {user ? (
           <div className="flex items-center gap-3">
             <CartLink />
+            <Link
+              href="/library"
+              className="text-sm font-medium text-neutral-600 hover:text-neutral-900"
+            >
+              Bibliothèque
+            </Link>
             <span className="text-sm text-neutral-700">
               {user.name}
               {user.role === "admin" && (

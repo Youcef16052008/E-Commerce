@@ -60,8 +60,12 @@ Erreurs typées. Secrets côté serveur. Décisions dans `docs/adr/`.
       webhook signé + idempotence 2 couches, commande payée + entitlement + vidage panier en
       transaction. **Validé sur Neon réelle** (session créée, webhook fulfilled, doublon ignoré,
       signature invalide → 400, checkout anonyme → 401).
-- [ ] Slice 5 — Bibliothèque & téléchargements.
-- [ ] Slices 6+ — voir `docs/implementation-plan.md`.
+- [x] **Slice 5 — Bibliothèque & téléchargements** : page `/library` (ouvrages achetés), API
+      `GET /api/me/library` + `POST /api/me/library/[productId]/download` (URL pré-signée, TTL 15 min),
+      stockage objet S3/R2 (aws4fetch). **Validé en réel** (liste, autorisation 403 sans droit,
+      503 si stockage non configuré, redirect 307 anonyme). ADR-006.
+- [ ] Slice 6 — Commandes (historique) / 7 — Admin.
+- [ ] Slices 8+ — voir `docs/implementation-plan.md`.
 
 ## Prochaine tâche
 
