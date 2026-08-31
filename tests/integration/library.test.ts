@@ -96,6 +96,12 @@ describe.skipIf(!hasDatabase)("Bibliothèque (intégration)", () => {
         productId: productWithFileId,
         orderId,
       },
+      {
+        id: randomUUID(),
+        userId: buyerId,
+        productId: productWithoutFileId,
+        orderId,
+      },
     ]);
   });
 
@@ -115,12 +121,16 @@ describe.skipIf(!hasDatabase)("Bibliothèque (intégration)", () => {
 
   it("liste les ouvrages pour lesquels l'utilisateur a un droit d'accès", async () => {
     const items = await viewLibrary(buyerId);
-    expect(items.length).toBe(1);
-    expect(items[0].productId).toBe(productWithFileId);
-    expect(items[0].slug).toBe(`it-lib-file-${runId}`);
-    expect(items[0].format).toBe("epub");
-    expect(items[0].fileUrl).toBe(fileUrl);
-    expect(items[0].purchasedAt).toBeInstanceOf(Date);
+    expect(items.length).toBe(2);
+    const withFile = items.find((i) => i.productId === productWithFileId);
+    const withoutFile = items.find((i) => i.productId === productWithoutFileId);
+    expect(withFile).toBeDefined();
+    expect(withoutFile).toBeDefined();
+    expect(withFile!.slug).toBe(`it-lib-file-${runId}`);
+    expect(withFile!.format).toBe("epub");
+    expect(withFile!.fileUrl).toBe(fileUrl);
+    expect(withFile!.purchasedAt).toBeInstanceOf(Date);
+    expect(withoutFile!.fileUrl).toBeNull();
   });
 
   it("refuse le téléchargement à un utilisateur SANS droit (NOT_ENTITLED)", async () => {
