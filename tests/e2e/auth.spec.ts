@@ -25,10 +25,15 @@ test("inscription puis déconnexion puis connexion", async ({ page }) => {
   await page.getByRole("button", { name: "Se déconnecter" }).click();
   await expect(page.getByRole("link", { name: "Se connecter" })).toBeVisible();
 
-  // --- Connexion ---
+  // --- Connexion (navigation ancrée, pas de course de re-render) ---
   await page.getByRole("link", { name: "Se connecter" }).click();
+  await page.waitForURL(/\/auth\/sign-in/);
+  await expect(page.getByRole("heading", { name: /Connexion|Se connecter/i })).toBeVisible();
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Mot de passe").fill(password);
-  await page.getByRole("button", { name: /Se connecter|Connexion/ }).click();
+  const submit = page.getByRole("button", { name: /Se connecter|Connexion/ });
+  await expect(submit).toBeEnabled();
+  await submit.click();
+  await expect(page).toHaveURL("/");
   await expect(page.getByText("Test E2E")).toBeVisible();
 });
