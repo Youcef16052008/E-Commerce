@@ -1,4 +1,4 @@
-export const PLACEHOLDER_DATABASE_URL = "postgres://user:pass@localhost:5432/biblio-placeholder";
+import { PLACEHOLDER_DATABASE_URL } from "../setup-env";
 
 /** Vrai si une vraie DATABASE_URL est fournie (les suites d'intégration tournent alors). */
 export const hasDatabase = Boolean(

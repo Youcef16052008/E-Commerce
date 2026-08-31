@@ -103,6 +103,10 @@ Personnalisable via `.env` (voir `.env.example`) : `IMPORT_GUTENDEX_LIMIT`,
 `IMPORT_GUTENDEX_LANGUAGES`, `IMPORT_PRICE_CENTS` (défaut **50 → 0,50 USD**),
 `IMPORT_PUBLISHED`, `IMPORT_MIN_DOWNLOADS`, et `GUTENDEX_BASE_URL` (miroir auto-hébergé).
 
+**✅ Validé en réel** : 500 livres importés (0 échec), 512 produits en base,
+500 EPUB + 500 couvertures dans MinIO, tests d'intégration 8/8 sur Neon
+(y compris téléchargement pré-signé → 200 → contenu intact).
+
 - **Licence** : œuvres du domaine public (États-Unis) — licence enregistrée par produit,
   usage commercial autorisé (`docs/adr/007-catalog-import.md`).
 - **Idempotent** : relançable sans doublon (dédupliqué par `source + source_id`).

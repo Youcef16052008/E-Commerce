@@ -65,6 +65,17 @@ Erreurs typées. Secrets côté serveur. Décisions dans `docs/adr/`.
       en base (migration additive `0002`), mapping pur testé (14 tests) + orchestrateur
       testé (2 tests, fetch/repo/storage stubbés). Monnaie boutique unifiée **USD**
       (Stripe Checkout mono-devise) : `npm run seed:products` convertit la démo.
+      **✅ Validé en réel (PC Windows + Neon + MinIO local)** — `db:push` appliqué ;
+      `seed:products` OK ; MinIO : bucket `biblio`, user `biblioapp`, policy `biblio-rw`
+      (Windows : `storage-bin/minio.exe` + `mc.exe`) ; `books:generate` + `books:upload`
+      OK + `storage:check` **200/SHA-256 identique** ; **`import:gutenberg` →
+      `✓ Terminé : 500 importés, 0 déjà présents, 0 échecs (512 scannés)`** ;
+      base : **512 produits** (500 `source='gutenberg'` + 12 démo) ; MinIO : **500 EPUB**
+      (`books/gutenberg/`) + **500 couvertures** (`covers/gutenberg/`) ;
+      `npm run test:integration` contre Neon → **3 fichiers / 8 tests verts, 1 skipped**
+      (stockage configuré ⇒ le cas `STORAGE_NOT_CONFIGURED` est ignoré) — dont le
+      **téléchargement réel** : URL pré-signée → GET **200** `application/epub+zip`,
+      contenu intact. `.env` non tracké.
 - [x] **Slice 4 — Checkout Stripe** : session Checkout (prix serveur, Managed Payments géré),
       webhook signé + idempotence 2 couches, commande payée + entitlement + vidage panier en
       transaction. **Validé sur Neon réelle** (session créée, webhook fulfilled, doublon ignoré,
@@ -91,12 +102,8 @@ Erreurs typées. Secrets côté serveur. Décisions dans `docs/adr/`.
 
 ## Prochaine tâche
 
-- **Validation sur Neon** (dès que `DATABASE_URL` est fournie) :
-  1. `npm run db:push` (ou `psql -f drizzle/0002_catalog-import.sql`) ;
-  2. `npm run seed:products` (conversion USD) + `npm run books:upload` ;
-  3. `npm run import:gutenberg` (~500 livres) ;
-  4. `npm run test:integration` + parcours réel (sign-in → `/library` → download).
-- Puis **Slice 6 — Commandes (historique)** / Slice 7 — Admin.
+- **Slice 6 — Commandes (historique)** / Slice 7 — Admin (CRUD produits + dashboard).
+- Avant déploiement (Slice 10) : `neon deploy`/`neon config`, vars R2, webhook Stripe test.
 
 ## Problèmes connus
 
