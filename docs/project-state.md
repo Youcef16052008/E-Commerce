@@ -57,6 +57,14 @@ Erreurs typées. Secrets côté serveur. Décisions dans `docs/adr/`.
 - [x] **Infra — Neon** : projet `fragrant-bonus-35221703` (branche production) lié ; migrations
       appliquées (10 tables vérifiées) ; 12 produits + admin seedés ; `DATABASE_URL` du projet
       pointé vers Neon ; `neon.ts` commité. `neon deploy`/`neon config` restent à faire.
+- [x] **Catalogue de masse — Import Gutendex** : ~500 œuvres du domaine public (Project
+      Gutenberg, API sans clé) importées dans **notre** base + stockage (aucune dépendance
+      en direct après import — si la source tombe, le site tourne). EPUB/PDF + couvertures
+      hébergés (`books/gutenberg/…`, couvertures servies par `/api/covers/gutenberg/[id]`),
+      prix **0,50 USD** (`IMPORT_PRICE_CENTS`), licence + `source`/`source_id`/`downloads`
+      en base (migration additive `0002`), mapping pur testé (14 tests) + orchestrateur
+      testé (2 tests, fetch/repo/storage stubbés). Monnaie boutique unifiée **USD**
+      (Stripe Checkout mono-devise) : `npm run seed:products` convertit la démo.
 - [x] **Slice 4 — Checkout Stripe** : session Checkout (prix serveur, Managed Payments géré),
       webhook signé + idempotence 2 couches, commande payée + entitlement + vidage panier en
       transaction. **Validé sur Neon réelle** (session créée, webhook fulfilled, doublon ignoré,
@@ -83,10 +91,11 @@ Erreurs typées. Secrets côté serveur. Décisions dans `docs/adr/`.
 
 ## Prochaine tâche
 
-- **Validation applicative Slice 5 sur Neon** : `DATABASE_URL` (projet
-  `fragrant-bonus-35221703`, branche production) à fournir pour : migration +
-  `seed:products`, `books:upload`, tests d'intégration (`npm run test:integration`)
-  et parcours réel (sign-in → `/library` → download).
+- **Validation sur Neon** (dès que `DATABASE_URL` est fournie) :
+  1. `npm run db:push` (ou `psql -f drizzle/0002_catalog-import.sql`) ;
+  2. `npm run seed:products` (conversion USD) + `npm run books:upload` ;
+  3. `npm run import:gutenberg` (~500 livres) ;
+  4. `npm run test:integration` + parcours réel (sign-in → `/library` → download).
 - Puis **Slice 6 — Commandes (historique)** / Slice 7 — Admin.
 
 ## Problèmes connus

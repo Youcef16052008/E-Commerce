@@ -43,7 +43,7 @@ export async function getCart(userId: string): Promise<CartSummary> {
 
   const totalInCents = items.reduce((sum, i) => sum + i.lineTotalInCents, 0);
   const totalQuantity = items.reduce((sum, i) => sum + i.quantity, 0);
-  const currency = items[0]?.currency ?? "eur";
+  const currency = items[0]?.currency ?? "usd";
 
   return { items, totalQuantity, totalInCents, currency };
 }

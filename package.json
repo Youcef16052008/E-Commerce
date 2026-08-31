@@ -26,6 +26,7 @@
     "books:upload": "tsx scripts/upload-books.ts",
     "storage:minio": "bash scripts/setup-minio.sh",
     "storage:check": "tsx scripts/check-storage.ts",
+    "import:gutenberg": "tsx scripts/import-gutendex.ts",
     "test:integration": "vitest run tests/integration"
   },
   "dependencies": {

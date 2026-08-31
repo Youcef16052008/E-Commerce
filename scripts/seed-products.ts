@@ -25,14 +25,16 @@ async function main() {
 
     if (existing.length > 0) {
       // Mise à jour : on conserve le `file_url` déjà mappé (s'il existe).
+      // Monnaie de la boutique = USD (Stripe Checkout mono-devise).
       await db
         .update(products)
-        .set({ ...p, published: true, updatedAt: new Date() })
+        .set({ ...p, currency: "usd", published: true, updatedAt: new Date() })
         .where(eq(products.slug, p.slug));
     } else {
       await db.insert(products).values({
         ...p,
         id: randomUUID(),
+        currency: "usd",
         fileUrl: null,
         published: true,
       });

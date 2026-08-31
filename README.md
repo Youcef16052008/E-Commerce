@@ -86,6 +86,28 @@ Production : Cloudflare **R2** avec les mêmes `STORAGE_*` (ajouter
 `STORAGE_ACCOUNT_ID` à la place de `STORAGE_ENDPOINT`) — aucun changement de code
 (voir `docs/adr/006-storage.md`).
 
+## Catalogue de masse — Project Gutenberg (Gutendex)
+
+Le catalogue démo peut être **importé** (copié) depuis les ~70 000 œuvres du domaine
+public de Project Gutenberg (API Gutendex, sans clé). Après l'import, le site
+**ne dépend plus d'aucune source externe** : métadonnées + EPUB + couvertures vivent
+dans votre base et votre stockage.
+
+```bash
+npm run db:push            # applique la migration additive 0002 (source/license/…)
+npm run seed:products      # convertit les 12 produits démo en USD (boutique mono-devise)
+npm run import:gutenberg   # importe les 500 livres les plus populaires
+```
+
+Personnalisable via `.env` (voir `.env.example`) : `IMPORT_GUTENDEX_LIMIT`,
+`IMPORT_GUTENDEX_LANGUAGES`, `IMPORT_PRICE_CENTS` (défaut **50 → 0,50 USD**),
+`IMPORT_PUBLISHED`, `IMPORT_MIN_DOWNLOADS`, et `GUTENDEX_BASE_URL` (miroir auto-hébergé).
+
+- **Licence** : œuvres du domaine public (États-Unis) — licence enregistrée par produit,
+  usage commercial autorisé (`docs/adr/007-catalog-import.md`).
+- **Idempotent** : relançable sans doublon (dédupliqué par `source + source_id`).
+- **Ne jamais utiliser** Z-Library / Anna's Archive / LibGen (contenus piratés).
+
 ## Vérification des versions
 
 Les versions affichées sont vérifiées au 2026-08-30. Au moment d'installer, re-vérifier :

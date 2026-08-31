@@ -57,6 +57,18 @@
 - **Stockage** : MinIO local (`scripts/setup-minio.sh`) pour la démo, R2 pour la prod
   (bascule via `STORAGE_*` uniquement, voir ADR-006).
 
+## Slice 5bis — Catalogue de masse (import Gutendex) ✅ Done
+
+- **Objectif** : passer d'une démo de 12 produits à une vraie librairie **sans dépendance
+  externe en production**.
+- **Décision** : importer ~500 œuvres du domaine public depuis Gutendex (Project Gutenberg)
+  dans la base + stockage locaux ; source utilisée uniquement à l'import.
+- **Livré** : `src/features/catalog-import/*` (mapper pur + orchestrateur + dépôt),
+  `scripts/import-gutendex.ts`, migration `drizzle/0002_catalog-import.sql` (additive),
+  `GET /api/covers/gutenberg/[id]`, env `IMPORT_*` + `GUTENDEX_BASE_URL`, ADR-007.
+- **Testing** : 14 tests unitaires mapping + 2 tests orchestrateur (stubs), 41 tests
+  unitaires au total, `tsc`/ESLint/Prettier verts.
+
 ## Slice 6 — Orders (P1)
 
 - **User story** : U7 — historique des commandes, statuts.

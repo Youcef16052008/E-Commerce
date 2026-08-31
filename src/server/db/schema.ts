@@ -32,12 +32,24 @@ export const products = pgTable(
     coverUrl: text("cover_url"),
     fileUrl: text("file_url"),
     priceInCents: integer("price_in_cents").notNull(),
-    currency: text("currency").notNull().default("eur"),
+    currency: text("currency").notNull().default("usd"),
     published: boolean("published").notNull().default(false),
+    // Monnaie unique de la boutique : USD (Stripe Checkout est mono-devise).
+    // Provenance du catalogue importé (ex. Gutendex / Project Gutenberg).
+    source: text("source"),
+    sourceId: text("source_id"),
+    // Licence du contenu (ex. "domaine public USA" pour Project Gutenberg).
+    license: text("license"),
+    // Nombre de téléchargements chez la source (utile pour trier l'import).
+    downloads: integer("downloads"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [index("products_category_idx").on(table.genre)],
+  (table) => [
+    index("products_category_idx").on(table.genre),
+    index("products_title_idx").on(table.title),
+    index("products_source_idx").on(table.source, table.sourceId),
+  ],
 );
 
 export const cartItems = pgTable(
