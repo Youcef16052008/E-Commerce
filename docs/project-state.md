@@ -61,9 +61,12 @@ Erreurs typées. Secrets côté serveur. Décisions dans `docs/adr/`.
       transaction. **Validé sur Neon réelle** (session créée, webhook fulfilled, doublon ignoré,
       signature invalide → 400, checkout anonyme → 401).
 - [x] **Slice 5 — Bibliothèque & téléchargements** : page `/library` (ouvrages achetés), API
-      `GET /api/me/library` + `POST /api/me/library/[productId]/download` (URL pré-signée, TTL 15 min),
-      stockage objet S3/R2 (aws4fetch). **Validé en réel** (liste, autorisation 403 sans droit,
-      503 si stockage non configuré, redirect 307 anonyme). ADR-006.
+      `GET /api/me/library` + `POST /api/me/library/[productId]/download`, stockage objet
+      S3/R2 (SDK AWS presigner). **Backend de stockage réel activé** : MinIO local sur
+      `:9000` (bucket `biblio`, user `biblioapp`, policy `biblio-rw`), 12 EPUB échantillon
+      dans `books/<slug>.epub` mappés sur les `fileUrl`. **Téléchargement validé de bout en
+      bout** : URL pré-signée SigV4 → GET → **200** `application/epub+zip` (contenu intact) ;
+      apport 403 sans droit, 503 si stockage non configuré. ADR-006 (adopté).
 - [ ] Slice 6 — Commandes (historique) / 7 — Admin.
 - [ ] Slices 8+ — voir `docs/implementation-plan.md`.
 
