@@ -1,5 +1,5 @@
 {
-  "id": "3ccb4b0e-e072-4dd0-8594-7afb9ee35101",
+  "id": "312e6ac9-c67f-44ac-b9b3-e2c1f2f9ea7e",
   "prevId": "0002_catalog-import",
   "version": "7",
   "dialect": "postgresql",
@@ -117,8 +117,12 @@
           "name": "account_user_id_user_id_fk",
           "tableFrom": "account",
           "tableTo": "user",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -166,8 +170,12 @@
           "name": "cart_items_user_id_user_id_fk",
           "tableFrom": "cart_items",
           "tableTo": "user",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -175,8 +183,12 @@
           "name": "cart_items_product_id_products_id_fk",
           "tableFrom": "cart_items",
           "tableTo": "products",
-          "columnsFrom": ["product_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "product_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -184,7 +196,10 @@
       "compositePrimaryKeys": {
         "cart_items_user_id_product_id_pk": {
           "name": "cart_items_user_id_product_id_pk",
-          "columns": ["user_id", "product_id"]
+          "columns": [
+            "user_id",
+            "product_id"
+          ]
         }
       },
       "uniqueConstraints": {},
@@ -277,8 +292,12 @@
           "name": "entitlements_user_id_user_id_fk",
           "tableFrom": "entitlements",
           "tableTo": "user",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -286,8 +305,12 @@
           "name": "entitlements_product_id_products_id_fk",
           "tableFrom": "entitlements",
           "tableTo": "products",
-          "columnsFrom": ["product_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "product_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -295,8 +318,12 @@
           "name": "entitlements_order_id_orders_id_fk",
           "tableFrom": "entitlements",
           "tableTo": "orders",
-          "columnsFrom": ["order_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "order_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -363,8 +390,12 @@
           "name": "order_items_order_id_orders_id_fk",
           "tableFrom": "order_items",
           "tableTo": "orders",
-          "columnsFrom": ["order_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "order_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -372,8 +403,12 @@
           "name": "order_items_product_id_products_id_fk",
           "tableFrom": "order_items",
           "tableTo": "products",
-          "columnsFrom": ["product_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "product_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -381,7 +416,10 @@
       "compositePrimaryKeys": {
         "order_items_order_id_product_id_pk": {
           "name": "order_items_order_id_product_id_pk",
-          "columns": ["order_id", "product_id"]
+          "columns": [
+            "order_id",
+            "product_id"
+          ]
         }
       },
       "uniqueConstraints": {},
@@ -476,8 +514,12 @@
           "name": "orders_user_id_user_id_fk",
           "tableFrom": "orders",
           "tableTo": "user",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -672,7 +714,9 @@
         "products_slug_unique": {
           "name": "products_slug_unique",
           "nullsNotDistinct": false,
-          "columns": ["slug"]
+          "columns": [
+            "slug"
+          ]
         }
       },
       "policies": {},
@@ -756,8 +800,12 @@
           "name": "session_user_id_user_id_fk",
           "tableFrom": "session",
           "tableTo": "user",
-          "columnsFrom": ["user_id"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -767,7 +815,9 @@
         "session_token_unique": {
           "name": "session_token_unique",
           "nullsNotDistinct": false,
-          "columns": ["token"]
+          "columns": [
+            "token"
+          ]
         }
       },
       "policies": {},
@@ -827,7 +877,9 @@
         "stripe_events_stripe_event_id_unique": {
           "name": "stripe_events_stripe_event_id_unique",
           "nullsNotDistinct": false,
-          "columns": ["stripe_event_id"]
+          "columns": [
+            "stripe_event_id"
+          ]
         }
       },
       "policies": {},
@@ -914,7 +966,9 @@
         "user_email_unique": {
           "name": "user_email_unique",
           "nullsNotDistinct": false,
-          "columns": ["email"]
+          "columns": [
+            "email"
+          ]
         }
       },
       "policies": {},
