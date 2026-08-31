@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getSessionUser } from "@/features/authentication/lib/session";
 import { LogoutButton } from "@/features/authentication/ui/logout-button";
+import { CartLink } from "@/features/cart/ui/cart-link";
 
 /**
  * En-tête serveur : affiche l'état d'authentification selon la session.
@@ -23,6 +24,7 @@ export async function Header() {
         </Link>
         {user ? (
           <div className="flex items-center gap-3">
+            <CartLink />
             <span className="text-sm text-neutral-700">
               {user.name}
               {user.role === "admin" && (
@@ -35,18 +37,18 @@ export async function Header() {
           </div>
         ) : (
           <>
-            <a
+            <Link
               href="/auth/sign-up"
               className="rounded-full border border-neutral-300 px-4 py-1.5 text-sm font-medium hover:bg-neutral-100"
             >
               S&apos;inscrire
-            </a>
-            <a
+            </Link>
+            <Link
               href="/auth/sign-in"
               className="rounded-full bg-neutral-900 px-4 py-1.5 text-sm font-medium text-white hover:bg-neutral-700"
             >
               Se connecter
-            </a>
+            </Link>
           </>
         )}
       </nav>

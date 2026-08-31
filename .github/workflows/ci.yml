@@ -8,6 +8,24 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: biblio
+          POSTGRES_PASSWORD: biblio_ci
+          POSTGRES_DB: biblio
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U biblio -d biblio"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: "postgres://biblio:biblio_ci@localhost:5432/biblio"
+      BETTER_AUTH_SECRET: "ci-secret-not-real-0123456789abcdef"
+      BETTER_AUTH_URL: "http://localhost:3000"
     steps:
       - uses: actions/checkout@v4
 
@@ -34,7 +52,17 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Apply DB migrations
+        run: npm run db:migrate
+
+      - name: Seed demo data
+        run: npm run seed:all
+
+      - name: End-to-end tests
+        run: npm run test:e2e
         env:
-          DATABASE_URL: "postgres://placeholder:placeholder@placeholder:5432/biblio"
-          BETTER_AUTH_SECRET: "ci-secret-not-real"
-          BETTER_AUTH_URL: "http://localhost:3000"
+          BETTER_AUTH_RATE_LIMIT_DISABLED: "1"

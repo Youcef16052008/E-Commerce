@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { queryProductBySlug } from "@/features/products/application/product-service";
+import { AddToCartButton } from "@/features/cart/ui/add-to-cart-button";
 import { formatPrice } from "@/shared/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -69,13 +70,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           )}
 
           <div className="mt-6 flex flex-col gap-3">
-            <button
-              disabled
-              className="cursor-not-allowed rounded-full bg-neutral-300 px-6 py-3 font-medium text-white"
-              aria-disabled="true"
-            >
-              Ajouter au panier (bientôt)
-            </button>
+            <AddToCartButton productId={product.id} />
             <p className="text-xs text-neutral-500">
               Le paiement et la bibliothèque personnelle seront activés dans les prochaines étapes.
             </p>

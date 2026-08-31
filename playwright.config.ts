@@ -15,7 +15,8 @@ export default defineConfig({
     { name: "mobile-chrome", use: { ...devices["Pixel 5"] } },
   ],
   webServer: {
-    command: "npm run build && npm run start",
+    command:
+      "BETTER_AUTH_RATE_LIMIT_DISABLED=1 npm run build && BETTER_AUTH_RATE_LIMIT_DISABLED=1 npm run start",
     url: process.env.E2E_BASE_URL ?? "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

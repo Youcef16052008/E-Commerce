@@ -47,12 +47,18 @@ Erreurs typées. Secrets côté serveur. Décisions dans `docs/adr/`.
 - [x] **Slice 2 — Catalogue public** : liste (recherche `q`, filtres genre/format/langue, tri,
       pagination), page produit + `generateMetadata` (SEO), API `GET /api/products` et
       `GET /api/products/[slug]`, seed 12 produits. Vérifié en réel (API + rendu + e2e).
-- [ ] Slice 3 — Panier.
-- [ ] Slices 4+ — voir `docs/implementation-plan.md`.
+- [x] **Slice 3 — Panier** : persistant en BDD (`cart_items`), ajout/retrait/maj quantité
+      (bornes 1..10), total calculé côté serveur (prix relus depuis `products`), API
+      `GET/POST /api/cart` + `PATCH/DELETE /api/cart/[productId]`, page `/cart`, badge panier,
+      bouton "Ajouter au panier" (redirect si non connecté). Rate limiting Better Auth
+      documenté (désactivé seulement en e2e via flag).
+- [ ] Slice 4 — Checkout Stripe.
+- [ ] Slices 5+ — voir `docs/implementation-plan.md`.
 
 ## Prochaine tâche
 
-- **Slice 3 — Panier** (persistant, ajout/retrait, validation des quantités côté serveur).
+- **Slice 4 — Checkout Stripe** (création de session, webhook signé, idempotence,
+  délivrance d'entitlement).
 
 ## Problèmes connus
 

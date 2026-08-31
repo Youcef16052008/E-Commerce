@@ -3,8 +3,8 @@
 > Boutique en ligne d'e-books / licences numériques : catalogue, panier, paiement Stripe
 > (mode test), bibliothèque personnelle et back-office administrateur.
 
-**État : en construction.** Fondations (0), Authentication (1) et Catalogue public (2) en place.
-Prochaines slices : panier, checkout Stripe, délivrance d'entitlements.
+**État : en construction.** Fondations (0), Authentication (1), Catalogue public (2) et
+Panier (3) en place. Prochaines slices : checkout Stripe, délivrance d'entitlements.
 
 ## Credentials de démonstration (dev local)
 
@@ -31,7 +31,7 @@ Prochaines slices : panier, checkout Stripe, délivrance d'entitlements.
 | 0 — Fondations              | ✅ Done    |
 | 1 — Authentication          | ✅ Done    |
 | 2 — Catalogue public        | ✅ Done    |
-| 3 — Panier                  | ⬜ à faire |
+| 3 — Panier                  | ✅ Done    |
 | 4 — Checkout Stripe         | ⬜ à faire |
 | 5 — Bibliothèque/files      | ⬜ à faire |
 | 6 — Commandes               | ⬜ à faire |
