@@ -71,6 +71,13 @@ Erreurs typées. Secrets côté serveur. Décisions dans `docs/adr/`.
       `application/epub+zip`, contenu intact (SHA-256 identique, `npm run storage:check`).
       Codes 401/403/404/503 en place ; ADR-006 → **Adopté** (MinIO local pour la démo,
       R2 pour la prod, même code, bascule par `STORAGE_*`).
+      **Validations réelles** : HTTP sans BDD — `GET /api/me/library` → **401**,
+      `POST /api/me/library/[id]/download` → **401**, `/library` non connecté → **307**
+      `/auth/sign-in?next=/library` ; stockage E2E — `npm run storage:check` → URL
+      pré-signée SigV4, **GET 200 `application/epub+zip`, contenu intact** ;
+      `npm run books:validate` → 12 fichiers valides ; `next build --webpack`,
+      `tsc --noEmit`, ESLint, Prettier **verts** ; `npm test` → **25 tests unitaires OK**
+      (9 tests d'intégration prêts, ignorés sans `DATABASE_URL`).
 - [ ] Slice 6 — Commandes (historique) / 7 — Admin.
 - [ ] Slices 8+ — voir `docs/implementation-plan.md`.
 
@@ -99,3 +106,5 @@ Erreurs typées. Secrets côté serveur. Décisions dans `docs/adr/`.
   **MinIO** via `bash scripts/setup-minio.sh` (mêmes `STORAGE_*`).
 - `books:upload` et les tests d'intégration exigent une vraie `DATABASE_URL` ; les
   suites d'intégration sont ignorées proprement (skip) si elle est absente.
+- `next/font/google` (Geist) remplacé par des **polices système** : le build ne dépend
+  plus d'aucun CDN externe (fonts.googleapis.com était bloqué en sandbox/CI).
