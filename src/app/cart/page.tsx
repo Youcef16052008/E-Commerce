@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { viewCart } from "@/features/cart/application/cart-service";
 import { getSessionUser } from "@/features/authentication/lib/session";
 import { CartLineActions } from "@/features/cart/ui/cart-line-actions";
+import { CheckoutButton } from "@/features/checkout/ui/checkout-button";
 import { formatPrice } from "@/shared/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -67,15 +68,10 @@ export default async function CartPage() {
               <span>Total</span>
               <span>{formatPrice(cart.totalInCents, cart.currency)}</span>
             </div>
-            <button
-              disabled
-              aria-disabled="true"
-              className="mt-4 w-full cursor-not-allowed rounded-full bg-neutral-300 px-6 py-3 font-medium text-white"
-            >
-              Passer au paiement (bientôt)
-            </button>
+            <CheckoutButton />
             <p className="mt-3 text-center text-xs text-neutral-500">
-              L&apos;encaissement Stripe sera activé à la prochaine étape.
+              Paiement sécurisé via Stripe (mode test). Votre droit d&apos;accès est délivré après
+              la confirmation du paiement.
             </p>
           </div>
         </div>

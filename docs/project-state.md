@@ -55,9 +55,13 @@ Erreurs typées. Secrets côté serveur. Décisions dans `docs/adr/`.
       documenté (désactivé seulement en e2e via flag).
 - [x] **Infra — Neon** : projet `fragrant-bonus-35221703` (branche production) lié ; migrations
       appliquées (10 tables vérifiées) ; 12 produits + admin seedés ; `DATABASE_URL` du projet
-      pointé vers Neon ; `neon.ts` commité. `neon deploy`/`neon config` restent à faire (clé scopée).
-- [ ] Slice 4 — Checkout Stripe.
-- [ ] Slices 5+ — voir `docs/implementation-plan.md`.
+      pointé vers Neon ; `neon.ts` commité. `neon deploy`/`neon config` restent à faire.
+- [x] **Slice 4 — Checkout Stripe** : session Checkout (prix serveur, Managed Payments géré),
+      webhook signé + idempotence 2 couches, commande payée + entitlement + vidage panier en
+      transaction. **Validé sur Neon réelle** (session créée, webhook fulfilled, doublon ignoré,
+      signature invalide → 400, checkout anonyme → 401).
+- [ ] Slice 5 — Bibliothèque & téléchargements.
+- [ ] Slices 6+ — voir `docs/implementation-plan.md`.
 
 ## Prochaine tâche
 
