@@ -26,6 +26,7 @@ export async function createCheckout(
       productId: it.productId,
       title: it.title,
       priceInCents: it.priceInCents,
+      quantity: it.quantity,
       currency: it.currency,
     })),
     totalInCents,

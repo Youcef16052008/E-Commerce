@@ -4,8 +4,8 @@
 > (mode test), bibliothèque personnelle et back-office administrateur.
 
 **État : en construction.** Fondations (0), Authentication (1), Catalogue public (2),
-Panier (3), Checkout Stripe (4) et Bibliothèque & téléchargements (5) en place.
-Prochaine : Commandes (6) puis Admin (7).
+Panier (3), Checkout Stripe (4), Bibliothèque & téléchargements (5) et Commandes (6)
+en place. Prochaine : Admin (7).
 
 ## Credentials de démonstration (dev local)
 
@@ -35,7 +35,7 @@ Prochaine : Commandes (6) puis Admin (7).
 | 3 — Panier                  | ✅ Done    |
 | 4 — Checkout Stripe         | ✅ Done    |
 | 5 — Bibliothèque / fichiers | ✅ Done    |
-| 6 — Commandes               | ⬜ à faire |
+| 6 — Commandes               | ✅ Done    |
 | 7 — Admin                   | ⬜ à faire |
 | 8 — Dashboard admin         | ⬜ à faire |
 | 9 — Qualité / accessibilité | ⬜ à faire |

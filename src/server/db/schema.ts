@@ -80,7 +80,8 @@ export const orders = pgTable(
       .notNull()
       .default("pending"),
     totalInCents: integer("total_in_cents").notNull(),
-    currency: text("currency").notNull().default("eur"),
+    // Monnaie unique de la boutique : USD (Stripe Checkout mono-devise).
+    currency: text("currency").notNull().default("usd"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     paidAt: timestamp("paid_at", { withTimezone: true }),
   },
@@ -101,7 +102,9 @@ export const orderItems = pgTable(
       .references(() => products.id, { onDelete: "restrict" }),
     titleSnapshot: text("title_snapshot").notNull(),
     priceInCents: integer("price_in_cents").notNull(),
-    currency: text("currency").notNull().default("eur"),
+    // Quantité achetée (snapshot — le panier autorise 1..10).
+    quantity: integer("quantity").notNull().default(1),
+    currency: text("currency").notNull().default("usd"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [primaryKey({ columns: [table.orderId, table.productId] })],

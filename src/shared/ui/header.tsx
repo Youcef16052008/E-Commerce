@@ -31,6 +31,12 @@ export async function Header() {
             >
               Bibliothèque
             </Link>
+            <Link
+              href="/orders"
+              className="text-sm font-medium text-neutral-600 hover:text-neutral-900"
+            >
+              Commandes
+            </Link>
             <span className="flex items-center gap-2 text-sm text-neutral-700">
               {user.name}
               {user.role === "admin" && (

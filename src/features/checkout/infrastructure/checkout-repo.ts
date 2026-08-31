@@ -17,7 +17,13 @@ import type { OrderStatus } from "../domain/checkout-types";
 /** Crée (ou réutilise) une commande `pending` pour l'utilisateur et l'instancie. */
 export async function createPendingOrder(
   userId: string,
-  items: { productId: string; title: string; priceInCents: number; currency: string }[],
+  items: {
+    productId: string;
+    title: string;
+    priceInCents: number;
+    quantity: number;
+    currency: string;
+  }[],
   totalInCents: number,
   currency: string,
 ) {
@@ -53,6 +59,7 @@ export async function createPendingOrder(
         productId: it.productId,
         titleSnapshot: it.title,
         priceInCents: it.priceInCents,
+        quantity: it.quantity,
         currency: it.currency,
       });
     }

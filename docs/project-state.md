@@ -97,8 +97,12 @@ Erreurs typées. Secrets côté serveur. Décisions dans `docs/adr/`.
       `npm run books:validate` → 12 fichiers valides ; `next build --webpack`,
       `tsc --noEmit`, ESLint, Prettier **verts** ; `npm test` → **25 tests unitaires OK**
       (9 tests d'intégration prêts, ignorés sans `DATABASE_URL`).
-- [ ] Slice 6 — Commandes (historique) / 7 — Admin.
-- [ ] Slices 8+ — voir `docs/implementation-plan.md`.
+- [x] **Slice 6 — Commandes / historique** : page `/orders` (ouvrages achetés, statuts
+      français pending/paid/fulfilled/failed/refunded, quantités, totaux relus en base),
+      `GET /api/me/orders`, lien « Commandes » dans l'en-tête ; `order_items.quantity`
+      conservée (migration `0003_order-quantity`, devises USD) ; 8 tests (5 unitaires
+      statuts + 2 intégration isolation/liste), validation par la CI (Neon/Postgres).
+- [ ] Slice 7 — Admin (CRUD produits + dashboard) / Slices 8+ — voir `docs/implementation-plan.md`.
 
 ## Prochaine tâche
 

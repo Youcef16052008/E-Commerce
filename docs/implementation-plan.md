@@ -69,11 +69,18 @@
 - **Testing** : 14 tests unitaires mapping + 2 tests orchestrateur (stubs), 41 tests
   unitaires au total, `tsc`/ESLint/Prettier verts.
 
-## Slice 6 — Orders (P1)
+## Slice 6 — Commandes / historique (P1) ✅ Done
 
 - **User story** : U7 — historique des commandes, statuts.
-- **Fichiers** : `features/orders/*`, page "mes commandes".
-- **Critères** : statuts cohérents avec le paiement.
+- **Fichiers** : `features/orders/*` (types, libellés de statut, repo, service),
+  page `/orders` (RSC, redirige vers sign-in si non connecté), `GET /api/me/orders`,
+  lien « Commandes » dans l'en-tête.
+- **Données** : `order_items.quantity` (snapshot de la quantité achetée, migration
+  `0003_order-quantity`) ; devises `orders`/`order_items` unifiées **USD**.
+- **Tests** : unit — libellés/styles de statut (5 tests) ; intégration — liste avec
+  articles/quantité/total + isolation entre utilisateurs (2 tests, base réelle).
+- **Critères** : statuts cohérents avec le paiement (pending → paid → fulfilled…) ;
+  totaux relus en base (jamais recalculés côté client) ; aucune fuite entre comptes.
 
 ## Slice 7 — Admin (P0/P1)
 
