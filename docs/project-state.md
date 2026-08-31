@@ -36,7 +36,8 @@ Erreurs typées. Secrets côté serveur. Décisions dans `docs/adr/`.
 - Next 16 / Node 24 / React 19.2 / Tailwind 4.3.
 - Postgres 17 + Drizzle. Better Auth (email/password). Stripe Checkout.
 - Idempotence 2 couches (Idempotency-Key + table `stripe_events` unique).
-- Déploiement : Vercel + Neon + R2/S3.
+- Déploiement : Vercel + Neon + R2/S3. **Neon câblé (project `fragrant-bonus-35221703`,**
+  **branche `production`)** : migration appliquée, 12 produits + admin seedés, app testée en direct.
 
 ## Progression
 
@@ -52,6 +53,9 @@ Erreurs typées. Secrets côté serveur. Décisions dans `docs/adr/`.
       `GET/POST /api/cart` + `PATCH/DELETE /api/cart/[productId]`, page `/cart`, badge panier,
       bouton "Ajouter au panier" (redirect si non connecté). Rate limiting Better Auth
       documenté (désactivé seulement en e2e via flag).
+- [x] **Infra — Neon** : projet `fragrant-bonus-35221703` (branche production) lié ; migrations
+      appliquées (10 tables vérifiées) ; 12 produits + admin seedés ; `DATABASE_URL` du projet
+      pointé vers Neon ; `neon.ts` commité. `neon deploy`/`neon config` restent à faire (clé scopée).
 - [ ] Slice 4 — Checkout Stripe.
 - [ ] Slices 5+ — voir `docs/implementation-plan.md`.
 
