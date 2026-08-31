@@ -124,3 +124,11 @@ Erreurs typées. Secrets côté serveur. Décisions dans `docs/adr/`.
   suites d'intégration sont ignorées proprement (skip) si elle est absente.
 - `next/font/google` (Geist) remplacé par des **polices système** : le build ne dépend
   plus d'aucun CDN externe (fonts.googleapis.com était bloqué en sandbox/CI).
+- **`drizzle/meta/` versionné** depuis ce correctif : `drizzle-kit migrate` (CI/fresh
+  clone) exige `meta/_journal.json` (dossier auparavant gitignoré → `Apply DB
+migrations` échouait). Les bases déjà créées via `db:push` (Neon actuelle) restent
+  en mode `db:push` ; les bases vierges/CI utilisent `db:migrate`.
+- **Sécurité** : ne jamais insérer de jeton GitHub dans une URL `git push`
+  (`https://ghp_...@github.com/...`). Ces jetons apparaissent dans l'historique de
+  l'invite et peuvent être capturés par des scanners. Utiliser le credential helper
+  (`git config --global credential.helper`) ou `gh auth login`.

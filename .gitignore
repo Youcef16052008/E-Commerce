@@ -46,7 +46,6 @@ next-env.d.ts
 /playwright-report/
 
 # drizzle
-/drizzle/meta
 
 # stockage local (MinIO binaires + données / mock S3 du sandbox)
 /storage-bin/

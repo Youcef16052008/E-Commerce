@@ -47,9 +47,14 @@ Prochaine : Commandes (6) puis Admin (7).
 ```bash
 cp .env.example .env        # renseigner DATABASE_URL, BETTER_AUTH_SECRET, etc.
 npm install
-npm run db:migrate          # applique migrations Drizzle (Neon)
+npm run db:migrate          # applique les migrations Drizzle (base vierge / CI)
 npm run dev                 # http://localhost:3000
 ```
+
+> Le dossier `drizzle/meta/` est **versionné** : indispensable pour que
+> `drizzle-kit migrate` fonctionne sur un clone/CI frais. Si votre base existante
+> a été créée avec `npm run db:push`, continuez d'utiliser `db:push` (ne rejouez
+> pas `db:migrate` dessus : les CREATE TABLE seraient dupliqués).
 
 ## Commandes
 
