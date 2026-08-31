@@ -2,13 +2,14 @@ import { test, expect } from "@playwright/test";
 
 /**
  * Parcours d'authentification e2e.
- * Utilise un email unique pour rester idempotent entre exécutions.
- * Nécessite une base accessible + la migration appliquée.
+ * Email unique par projet ET par exécution (les projets chromium/mobile partagent
+ * le même worker : un email définie au niveau du fichier créerait un conflit
+ * d'inscription entre les deux projets → boucle de re-render / clic détaché).
  */
-const email = `e2e-${Date.now()}@biblio.test`;
 const password = "MotDePasse!123";
 
 test("inscription puis déconnexion puis connexion", async ({ page }) => {
+  const email = `e2e-${Date.now()}-${test.info().project.name}@biblio.test`;
   // --- Inscription ---
   await page.goto("/auth/sign-up");
   await page.getByLabel("Nom").fill("Test E2E");
