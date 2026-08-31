@@ -4,8 +4,8 @@
 > (mode test), bibliothèque personnelle et back-office administrateur.
 
 **État : en construction.** Fondations (0), Authentication (1), Catalogue public (2),
-Panier (3), Checkout Stripe (4), Bibliothèque & téléchargements (5) et Commandes (6)
-en place. Prochaine : Admin (7).
+Panier (3), Checkout Stripe (4), Bibliothèque & téléchargements (5), Commandes (6)
+et Admin (7) en place. Prochaine : Dashboard admin / stats (8).
 
 ## Credentials de démonstration (dev local)
 
@@ -14,6 +14,20 @@ en place. Prochaine : Admin (7).
 | Admin | `admin@biblio.test` | `Bibli0-Admin!` |
 
 > Créez-le avec `npm run seed:admin` (changez le mot de passe en production).
+
+## Administration
+
+Espace back-office réservé au rôle `admin` (`/admin`) :
+
+- **Produits** (`/admin/products`) — CRUD complet (création, édition, publier /
+  dépublier, suppression). Les brouillons sont visibles ici uniquement ; le
+  catalogue public n'expose que les produits `published`.
+- **Commandes** (`/admin/orders`) — liste globale avec email client, totaux et
+  changement de statut (pending → paid → fulfilled…).
+- **API** : `GET/POST /api/admin/products`, `GET/PATCH/DELETE /api/admin/products/[id]`,
+  `GET /api/admin/orders`, `PATCH /api/admin/orders/[id]/status` — 401 si non
+  connecté, **403** si rôle customer.
+- Compte seed : `admin@biblio.test` / `Bibli0-Admin!` (`npm run seed:admin`).
 
 ## Stack
 
@@ -36,7 +50,7 @@ en place. Prochaine : Admin (7).
 | 4 — Checkout Stripe         | ✅ Done    |
 | 5 — Bibliothèque / fichiers | ✅ Done    |
 | 6 — Commandes               | ✅ Done    |
-| 7 — Admin                   | ⬜ à faire |
+| 7 — Admin                   | ✅ Done    |
 | 8 — Dashboard admin         | ⬜ à faire |
 | 9 — Qualité / accessibilité | ⬜ à faire |
 | 10 — Déploiement            | ⬜ à faire |

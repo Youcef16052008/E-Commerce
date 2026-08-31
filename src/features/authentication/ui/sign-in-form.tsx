@@ -4,6 +4,13 @@ import { useState } from "react";
 import { authClient } from "../lib/auth-client";
 import { useRouter } from "next/navigation";
 
+/** Accepte uniquement un chemin interne commençant par `/` (pas `//` open-redirect). */
+function safeNextPath(raw: string | null): string | null {
+  if (!raw) return null;
+  if (!raw.startsWith("/") || raw.startsWith("//")) return null;
+  return raw;
+}
+
 export function SignInForm() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -21,7 +28,9 @@ export function SignInForm() {
         setError(res.error.message ?? "Identifiants invalides.");
         return;
       }
-      router.push("/");
+      const params = new URLSearchParams(window.location.search);
+      const next = safeNextPath(params.get("next")) ?? "/";
+      router.push(next);
       router.refresh();
     } catch {
       setError("Une erreur est survenue. Réessayez.");

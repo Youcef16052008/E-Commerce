@@ -82,12 +82,26 @@
 - **Critères** : statuts cohérents avec le paiement (pending → paid → fulfilled…) ;
   totaux relus en base (jamais recalculés côté client) ; aucune fuite entre comptes.
 
-## Slice 7 — Admin (P0/P1)
+## Slice 7 — Admin (P0/P1) ✅ Done
 
 - **User story** : U8, U10 — CRUD produits, gestion commandes.
-- **Fichiers** : `features/admin/*`, dashboard.
-- **Tests** : autorisation (admin vs client → 403), CRUD, validation.
-- **Critères** : routes protégées côté serveur ; interface admin dédiée.
+- **Fichiers** : `features/admin/*` (domain schemas/types, application services +
+  `requireAdmin`, infrastructure repo, UI formulaires/actions), pages
+  `/admin`, `/admin/products`, `/admin/products/new`, `/admin/products/[id]/edit`,
+  `/admin/orders`, routes API `/api/admin/products`, `/api/admin/products/[id]`,
+  `/api/admin/orders`, `/api/admin/orders/[id]/status`.
+- **Sécurité** : `requireAdmin()` re-vérifie la session (401 non connecté, 403
+  customer) ; layout admin redirige vers sign-in ou affiche un panneau 403
+  explicite ; lien « Admin » dans l'en-tête uniquement si `role === admin`.
+- **CRUD** : slug auto via `slugify` partagé (`src/shared/lib/slugify.ts`) ;
+  collision slug → 409 ; suppression refusée (409 `PRODUCT_REFERENCED`) si le
+  produit apparaît dans `order_items` (FK RESTRICT).
+- **Commandes** : liste globale avec email/nom client ; changement de statut
+  (pending|paid|fulfilled|failed|refunded) avec libellés FR.
+- **Tests** : unit — schemas + garde admin ; intégration — CRUD, slug dupliqué,
+  produit référencé, commandes + statut, 404.
+- **Critères** : routes protégées côté serveur ; interface admin dédiée ; hors
+  périmètre Slice 8 (pas de stats chiffrées).
 
 ## Slice 8 — Admin dashboard / stats (P1)
 

@@ -37,6 +37,14 @@ export async function Header() {
             >
               Commandes
             </Link>
+            {user.role === "admin" && (
+              <Link
+                href="/admin"
+                className="text-sm font-medium text-neutral-600 hover:text-neutral-900"
+              >
+                Admin
+              </Link>
+            )}
             <span className="flex items-center gap-2 text-sm text-neutral-700">
               {user.name}
               {user.role === "admin" && (
