@@ -21,8 +21,8 @@ git push origin arena/01a05802-e-commerce
 ## Pourquoi ne pas l'avoir commité ici
 
 Le jeton GitHub App utilisé pour pousser cette branche n'a pas la permission
-**`workflows`** (refus : *"refusing to allow a GitHub App to create or update
-workflow .github/workflows/ci.yml without workflows permission"*). Deux solutions :
+**`workflows`** (refus : _"refusing to allow a GitHub App to create or update
+workflow .github/workflows/ci.yml without workflows permission"_). Deux solutions :
 
 1. **Appliquer/pousser le patch depuis votre machine** (recommandé, 1 minute) ;
 2. **Accorder l'écriture** `workflows` au bot GitHub App (Settings → GitHub Apps
