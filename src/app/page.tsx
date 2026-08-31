@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function Home() {
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col items-center justify-center px-6 py-16 text-center">
@@ -10,18 +12,18 @@ export default function Home() {
         bibliothèque personnelle.
       </p>
       <div className="mt-8 flex gap-3">
-        <a
+        <Link
           href="/products"
           className="rounded-full bg-neutral-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-neutral-700"
         >
           Explorer le catalogue
-        </a>
-        <a
+        </Link>
+        <Link
           href="/auth/sign-in"
           className="rounded-full border border-neutral-300 px-5 py-2.5 text-sm font-medium hover:bg-neutral-100"
         >
           Se connecter
-        </a>
+        </Link>
       </div>
     </main>
   );

@@ -15,9 +15,12 @@ export async function Header() {
         Biblio
       </Link>
       <nav className="flex items-center gap-4">
-        <a href="/products" className="text-sm font-medium text-neutral-600 hover:text-neutral-900">
+        <Link
+          href="/products"
+          className="text-sm font-medium text-neutral-600 hover:text-neutral-900"
+        >
           Catalogue
-        </a>
+        </Link>
         {user ? (
           <div className="flex items-center gap-3">
             <span className="text-sm text-neutral-700">

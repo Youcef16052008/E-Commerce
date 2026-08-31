@@ -44,12 +44,15 @@ Erreurs typées. Secrets côté serveur. Décisions dans `docs/adr/`.
 - [x] **Slice 0 — Fondations** : scaffold Next 16 + TS strict + Tailwind + Drizzle/Neon + Better Auth + Vitest + Playwright + ESLint/Prettier + CI. Migration initiale générée.
 - [x] **Slice 1 — Authentication** : client/serveur Better Auth, pages connexion/inscription,
       en-tête avec session, déconnexion, RBAC, seed admin. Vérifié en réel sur un Postgres 17 local.
-- [ ] Slice 2 — Catalogue public.
-- [ ] Slices 3+ — voir `docs/implementation-plan.md`.
+- [x] **Slice 2 — Catalogue public** : liste (recherche `q`, filtres genre/format/langue, tri,
+      pagination), page produit + `generateMetadata` (SEO), API `GET /api/products` et
+      `GET /api/products/[slug]`, seed 12 produits. Vérifié en réel (API + rendu + e2e).
+- [ ] Slice 3 — Panier.
+- [ ] Slices 4+ — voir `docs/implementation-plan.md`.
 
 ## Prochaine tâche
 
-- **Slice 2 — Catalogue public** (liste, recherche, filtres, page produit + seed produits).
+- **Slice 3 — Panier** (persistant, ajout/retrait, validation des quantités côté serveur).
 
 ## Problèmes connus
 
