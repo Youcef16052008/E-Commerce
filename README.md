@@ -4,13 +4,14 @@
 > (mode test), bibliothèque personnelle et back-office administrateur.
 
 **État : en construction.** Fondations (0), Authentication (1), Catalogue public (2),
-Panier (3) et Checkout Stripe (4) en place. Prochaine : bibliothèque & téléchargements.
+Panier (3), Checkout Stripe (4) et Bibliothèque & téléchargements (5) en place.
+Prochaine : Commandes (6) puis Admin (7).
 
 ## Credentials de démonstration (dev local)
 
-| Rôle    | Email              | Mot de passe     |
-|---------|--------------------|------------------|
-| Admin   | `admin@biblio.test` | `Bibli0-Admin!` |
+| Rôle  | Email               | Mot de passe    |
+| ----- | ------------------- | --------------- |
+| Admin | `admin@biblio.test` | `Bibli0-Admin!` |
 
 > Créez-le avec `npm run seed:admin` (changez le mot de passe en production).
 
@@ -34,8 +35,6 @@ Panier (3) et Checkout Stripe (4) en place. Prochaine : bibliothèque & téléch
 | 3 — Panier                  | ✅ Done    |
 | 4 — Checkout Stripe         | ✅ Done    |
 | 5 — Bibliothèque / fichiers | ✅ Done    |
-| 4 — Checkout Stripe         | ⬜ à faire |
-| 5 — Bibliothèque/files      | ⬜ à faire |
 | 6 — Commandes               | ⬜ à faire |
 | 7 — Admin                   | ⬜ à faire |
 | 8 — Dashboard admin         | ⬜ à faire |
@@ -54,17 +53,38 @@ npm run dev                 # http://localhost:3000
 
 ## Commandes
 
-| Commande              | Description                         |
-| --------------------- | ----------------------------------- |
-| `npm run dev`         | Serveur de dev                      |
-| `npm run build`       | Build production                    |
-| `npm run lint`        | ESLint                              |
-| `npm run typecheck`   | TypeScript strict                   |
-| `npm test`            | Tests unitaires / intégration       |
-| `npm run test:e2e`    | Tests end-to-end (Playwright)       |
-| `npm run db:generate` | Génère une migration Drizzle        |
-| `npm run db:migrate`  | Applique les migrations             |
-| `npm run db:studio`   | Inspecteur de base (Drizzle Studio) |
+| Commande                 | Description                                                       |
+| ------------------------ | ----------------------------------------------------------------- |
+| `npm run dev`            | Serveur de dev                                                    |
+| `npm run build`          | Build production                                                  |
+| `npm run lint`           | ESLint                                                            |
+| `npm run typecheck`      | TypeScript strict                                                 |
+| `npm test`               | Tests unitaires / intégration                                     |
+| `npm run test:e2e`       | Tests end-to-end (Playwright)                                     |
+| `npm run db:generate`    | Génère une migration Drizzle                                      |
+| `npm run db:migrate`     | Applique les migrations                                           |
+| `npm run db:studio`      | Inspecteur de base (Drizzle Studio)                               |
+| `npm run books:generate` | Génère les e-books de démo (`books/`)                             |
+| `npm run books:validate` | Valide les EPUB/PDF (zipfile, mimetype en premier)                |
+| `npm run books:upload`   | Upload les fichiers + mappe `products.file_url`                   |
+| `npm run storage:check`  | Test bout en bout du stockage (upload → presign → 200)            |
+| `npm run storage:minio`  | Met en place MinIO local (serveur, bucket, user, policy, données) |
+
+## Stockage local (démo) — MinIO
+
+Les fichiers ne transitent jamais par l'app : le serveur renvoie des **URLs
+pré-signées SigV4** (15 min) après vérification de l'achat.
+
+```bash
+bash scripts/setup-minio.sh   # télécharge MinIO, démarre :9000, bucket biblio,
+                              # user applicatif + policy, seed + upload des e-books
+cp .env.example .env          # puis renseigner les STORAGE_* affichés
+npm run storage:check         # vérification de bout en bout
+```
+
+Production : Cloudflare **R2** avec les mêmes `STORAGE_*` (ajouter
+`STORAGE_ACCOUNT_ID` à la place de `STORAGE_ENDPOINT`) — aucun changement de code
+(voir `docs/adr/006-storage.md`).
 
 ## Vérification des versions
 

@@ -41,12 +41,21 @@
 - **Tests** : unit (prix relu serveur, calcul), intégration (webhook signé idempotent, doublon ignoré), e2e (parcours achat complet via Stripe CLI test + webhook).
 - **Critères** : ne jamais faire confiance au prix client ; `checkout.session.completed` signé et non déjà traité → création entitlement ; panier vidé après paiement.
 
-## Slice 5 — Bibliothèque & téléchargement (P0)
+## Slice 5 — Bibliothèque & téléchargement (P0) ✅ Done
 
 - **User story** : U7 — accès au fichier acheté.
-- **Fichiers** : `features/entitlements/*`, adaptateur R2/S3 (URL pré-signée).
-- **Tests** : unit (résolution entitlement), intégration (accès refusé sans droit), e2e.
-- **Critères** : seul le propriétaire accède ; URL à TTL court ; même produit → un seul entitlement.
+- **Fichiers** : `features/library/*` (page /library, GET /api/me/library,
+  POST /api/me/library/[productId]/download), `src/server/storage/index.ts`
+  (`@aws-sdk/client-s3` + `s3-request-presigner`).
+- **Données** : `products.file_url` = `s3://<bucket>/books/<slug>.<format>` ;
+  e-books de démo générés (`books/`) et validés (`zipfile` : mimetype en premier, stored).
+- **Tests** : unit — `tests/unit/storage.test.ts` (config, parse, **pré-signature SigV4
+  query-string**, TTL) ; intégration — liste, 403 sans entitlement, 404 sans fichier,
+  503 sans config, URL pré-signée + **GET 200 contenu intact** (si stockage configuré).
+- **Critères** : seul le propriétaire accède (autorisation objet) ; URL TTL 15 min ;
+  un seul entitlement par produit (index unique) ; 401/403/404/503 typés.
+- **Stockage** : MinIO local (`scripts/setup-minio.sh`) pour la démo, R2 pour la prod
+  (bascule via `STORAGE_*` uniquement, voir ADR-006).
 
 ## Slice 6 — Orders (P1)
 

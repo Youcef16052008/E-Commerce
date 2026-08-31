@@ -3,7 +3,7 @@ import {
   userHasEntitlement,
   getProductFile,
 } from "../infrastructure/library-repo";
-import { createPresignedDownloadUrl, isStorageConfigured } from "@/server/storage";
+import { createPresignedDownloadUrl, isStorageConfigured, parseFileUrl } from "@/server/storage";
 import type { LibraryItem, LibraryError } from "../domain/library-types";
 
 /**
@@ -37,7 +37,18 @@ export async function createDownloadLink(
     return { ok: false, error: { code: "STORAGE_NOT_CONFIGURED" } };
   }
 
-  const key = new URL(product.fileUrl).pathname.replace(/^\//, "");
+  let key: string;
+  try {
+    const parsed = parseFileUrl(product.fileUrl);
+    key = parsed.key;
+  } catch {
+    // fileUrl illisible (format inattendu) : on traite comme un fichier absent.
+    return { ok: false, error: { code: "FILE_NOT_AVAILABLE" } };
+  }
+  if (!key) {
+    return { ok: false, error: { code: "FILE_NOT_AVAILABLE" } };
+  }
+
   const url = await createPresignedDownloadUrl(key, 900); // 15 min
   return { ok: true, url };
 }

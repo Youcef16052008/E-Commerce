@@ -9,18 +9,19 @@ après paiement Stripe vérifié. Projet portfolio full-stack senior.
 
 ## Stack & versions (ré-vérifiées au 2026-08-30)
 
-| Outil      | Choice              | Version installée                |
-| ---------- | ------------------- | -------------------------------- |
-| Framework  | Next.js             | **16.3.3** (Active LTS)          |
-| Runtime    | Node.js             | 24 visé (sandbox local v20.20.2) |
-| UI         | React               | **19.2.8**                       |
-| CSS        | Tailwind CSS        | **4.3.3**                        |
-| DB         | PostgreSQL          | 17 (Neon)                        |
-| ORM        | Drizzle             | **0.45.2** / kit 0.31.10         |
-| Validation | Zod                 | **4.5.4**                        |
-| Auth       | Better Auth         | **1.7.2**                        |
-| Paiement   | Stripe Checkout     | à intégrer (Slice 4)             |
-| Tests      | Vitest / Playwright | **4.1.11** / **1.62.1**          |
+| Outil      | Choice              | Version installée                 |
+| ---------- | ------------------- | --------------------------------- |
+| Framework  | Next.js             | **16.3.3** (Active LTS)           |
+| Runtime    | Node.js             | 24 visé (sandbox local v20.20.2)  |
+| UI         | React               | **19.2.8**                        |
+| CSS        | Tailwind CSS        | **4.3.3**                         |
+| DB         | PostgreSQL          | 17 (Neon)                         |
+| ORM        | Drizzle             | **0.45.2** / kit 0.31.10          |
+| Validation | Zod                 | **4.5.4**                         |
+| Auth       | Better Auth         | **1.7.2**                         |
+| Paiement   | Stripe Checkout     | **22.6.0** (mode test)            |
+| Stockage   | AWS SDK S3          | **3.1121.x** (client + presigner) |
+| Tests      | Vitest / Playwright | **4.1.11** / **1.62.1**           |
 
 ## Architecture
 
@@ -61,19 +62,25 @@ Erreurs typées. Secrets côté serveur. Décisions dans `docs/adr/`.
       transaction. **Validé sur Neon réelle** (session créée, webhook fulfilled, doublon ignoré,
       signature invalide → 400, checkout anonyme → 401).
 - [x] **Slice 5 — Bibliothèque & téléchargements** : page `/library` (ouvrages achetés), API
-      `GET /api/me/library` + `POST /api/me/library/[productId]/download`, stockage objet
-      S3/R2 (SDK AWS presigner). **Backend de stockage réel activé** : MinIO local sur
-      `:9000` (bucket `biblio`, user `biblioapp`, policy `biblio-rw`), 12 EPUB échantillon
-      dans `books/<slug>.epub` mappés sur les `fileUrl`. **Téléchargement validé de bout en
-      bout** : URL pré-signée SigV4 → GET → **200** `application/epub+zip` (contenu intact) ;
-      apport 403 sans droit, 503 si stockage non configuré. ADR-006 (adopté).
+      `GET /api/me/library` + `POST /api/me/library/[productId]/download`, adaptateur stockage
+      S3 **`@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner`** (SigV4 **query-string**,
+      remplace `aws4fetch` qui signe en en-tête → 403). 12 e-books de démo (6 EPUB valides —
+      `mimetype` en premier, non compressé — + 6 PDF) dans `books/`, mappés `s3://biblio/books/…`
+      via `npm run books:upload`. **Téléchargement validé de bout en bout** : upload →
+      URL pré-signée (`X-Amz-Algorithm`/`X-Amz-Signature`) → GET → **200**
+      `application/epub+zip`, contenu intact (SHA-256 identique, `npm run storage:check`).
+      Codes 401/403/404/503 en place ; ADR-006 → **Adopté** (MinIO local pour la démo,
+      R2 pour la prod, même code, bascule par `STORAGE_*`).
 - [ ] Slice 6 — Commandes (historique) / 7 — Admin.
 - [ ] Slices 8+ — voir `docs/implementation-plan.md`.
 
 ## Prochaine tâche
 
-- **Slice 4 — Checkout Stripe** (création de session, webhook signé, idempotence,
-  délivrance d'entitlement).
+- **Validation applicative Slice 5 sur Neon** : `DATABASE_URL` (projet
+  `fragrant-bonus-35221703`, branche production) à fournir pour : migration +
+  `seed:products`, `books:upload`, tests d'intégration (`npm run test:integration`)
+  et parcours réel (sign-in → `/library` → download).
+- Puis **Slice 6 — Commandes (historique)** / Slice 7 — Admin.
 
 ## Problèmes connus
 
@@ -86,3 +93,9 @@ Erreurs typées. Secrets côté serveur. Décisions dans `docs/adr/`.
 - La migration 0001 (colonne `account.issuer`) a été appliquée sur Postgres 17 local.
 - Tests d'intégration auth : exigent `DATABASE_URL` appliqué (local OK ; Neon → OK si `db:migrate`).
 - Playwright en CI : `npx playwright install --with-deps chromium`.
+- Sandbox : les CDN MinIO/Docker/GitHub-assets ne sont pas accessibles → validation
+  du stockage faite sur un serveur S3 compatible local (`S3rver`, npm, **non persisté
+  dans package.json**, credentials `S3RVER`/`S3RVER`) ; sur la machine de démo, utiliser
+  **MinIO** via `bash scripts/setup-minio.sh` (mêmes `STORAGE_*`).
+- `books:upload` et les tests d'intégration exigent une vraie `DATABASE_URL` ; les
+  suites d'intégration sont ignorées proprement (skip) si elle est absente.
