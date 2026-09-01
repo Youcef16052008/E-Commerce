@@ -4,8 +4,9 @@
 > (mode test), bibliothèque personnelle et back-office administrateur.
 
 **État : en construction.** Fondations (0), Authentication (1), Catalogue public (2),
-Panier (3), Checkout Stripe (4), Bibliothèque & téléchargements (5), Commandes (6)
-et Admin (7) en place. Prochaine : Dashboard admin / stats (8).
+Panier (3), Checkout Stripe (4), Bibliothèque & téléchargements (5), Commandes (6),
+Admin (7), **Dashboard admin / stats (8)** et **Qualité & accessibilité (9)** en place.
+Prochaine : exécution du déploiement (10) — runbook prêt, credentials à fournir.
 
 ## Credentials de démonstration (dev local)
 
@@ -19,14 +20,19 @@ et Admin (7) en place. Prochaine : Dashboard admin / stats (8).
 
 Espace back-office réservé au rôle `admin` (`/admin`) :
 
+- **Tableau de bord** (`/admin`) — chiffres **réels** de la BDD : produits
+  (total / publiés / brouillons), commandes (total + répartition par statut),
+  **revenu USD** (commandes `paid` + `fulfilled` **uniquement** — jamais
+  pending/failed/refunded), clients, 5 dernières commandes et top 5 des
+  meilleures ventes. Agrégations SQL Drizzle (zéro N+1, zéro chiffre hardcodé).
 - **Produits** (`/admin/products`) — CRUD complet (création, édition, publier /
   dépublier, suppression). Les brouillons sont visibles ici uniquement ; le
   catalogue public n'expose que les produits `published`.
 - **Commandes** (`/admin/orders`) — liste globale avec email client, totaux et
   changement de statut (pending → paid → fulfilled…).
 - **API** : `GET/POST /api/admin/products`, `GET/PATCH/DELETE /api/admin/products/[id]`,
-  `GET /api/admin/orders`, `PATCH /api/admin/orders/[id]/status` — 401 si non
-  connecté, **403** si rôle customer.
+  `GET /api/admin/orders`, `GET /api/admin/stats`,
+  `PATCH /api/admin/orders/[id]/status` — 401 si non connecté, **403** si rôle customer.
 - Compte seed : `admin@biblio.test` / `Bibli0-Admin!` (`npm run seed:admin`).
 
 ## Stack
@@ -35,26 +41,27 @@ Espace back-office réservé au rôle `admin` (`/admin`) :
 - **Tailwind CSS 4.3.x**
 - **PostgreSQL 17** (Neon) · **Drizzle ORM 0.45.x**
 - **Better Auth 1.7.x** (email/password, RBAC)
-- **Stripe Checkout** (mode test) — venir
+- **Stripe Checkout** (mode test) — webhook signé, idempotent
 - **Vitest 4.x** (unit/integration) · **Playwright 1.62.x** (e2e)
-- Déploiement : **Vercel + Neon + R2/S3** (à venir)
+- Déploiement : **Vercel + Neon + R2/S3** — config + runbook prêts
+  (`docs/runbook-deploy.md`), exécution à faire
 
 ## Avancement
 
-| Slice                       | Statut     |
-| --------------------------- | ---------- |
-| 0 — Fondations              | ✅ Done    |
-| 1 — Authentication          | ✅ Done    |
-| 2 — Catalogue public        | ✅ Done    |
-| 3 — Panier                  | ✅ Done    |
-| 4 — Checkout Stripe         | ✅ Done    |
-| 5 — Bibliothèque / fichiers | ✅ Done    |
-| 6 — Commandes               | ✅ Done    |
-| 7 — Admin                   | ✅ Done    |
-| 8 — Dashboard admin         | ⬜ à faire |
-| 9 — Qualité / accessibilité | ⬜ à faire |
-| 10 — Déploiement            | ⬜ à faire |
-| 11 — Étude de cas portfolio | ⬜ à faire |
+| Slice                       | Statut                                |
+| --------------------------- | ------------------------------------- |
+| 0 — Fondations              | ✅ Done                               |
+| 1 — Authentication          | ✅ Done                               |
+| 2 — Catalogue public        | ✅ Done                               |
+| 3 — Panier                  | ✅ Done                               |
+| 4 — Checkout Stripe         | ✅ Done                               |
+| 5 — Bibliothèque / fichiers | ✅ Done                               |
+| 6 — Commandes               | ✅ Done                               |
+| 7 — Admin                   | ✅ Done                               |
+| 8 — Dashboard admin         | ✅ Done                               |
+| 9 — Qualité / accessibilité | ✅ Done                               |
+| 10 — Déploiement            | 🔄 docs/config prêts — deploy à faire |
+| 11 — Étude de cas portfolio | ⬜ à faire                            |
 
 ## Démarrage
 
@@ -141,7 +148,11 @@ Les versions affichées sont vérifiées au 2026-08-30. Au moment d'installer, r
 - `docs/discovery.md` — problème, personas, signal senior.
 - `docs/product-brief.md` — PRD, user stories, périmètre.
 - `docs/architecture.md` — architecture, ERD, contrats API, sécurité.
+- `docs/implementation-plan.md` — plan vertical slices (état slice par slice).
 - `docs/stack.md` — comparaison des choix et versions vérifiées.
+- `docs/accessibility.md` — audit a11y + correctifs (Slice 9).
+- `docs/lighthouse.md` — mesures Lighthouse **réelles** (date/env/commandes).
+- `docs/runbook-deploy.md` — runbook de déploiement Vercel + Neon + R2 (Slice 10).
 - `docs/adr/` — décisions structurantes.
 - `docs/project-state.md` — état du projet (progression).
 
