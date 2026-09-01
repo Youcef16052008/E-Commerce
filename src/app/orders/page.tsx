@@ -31,7 +31,7 @@ export default async function OrdersPage() {
       {orders.length === 0 ? (
         <div className="mt-10 rounded-xl border border-dashed border-neutral-300 py-16 text-center">
           <p className="text-lg text-neutral-500">Aucune commande pour le moment.</p>
-          <p className="mt-1 text-sm text-neutral-400">
+          <p className="mt-1 text-sm text-neutral-500">
             Dès qu&apos;un achat est validé, il apparaîtra ici.
           </p>
           <Link
@@ -48,7 +48,7 @@ export default async function OrdersPage() {
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <p className="text-sm text-neutral-500">Commande</p>
-                  <p className="font-mono text-xs text-neutral-400">{order.id}</p>
+                  <p className="font-mono text-xs text-neutral-500">{order.id}</p>
                 </div>
                 <div className="flex items-center gap-3">
                   <span

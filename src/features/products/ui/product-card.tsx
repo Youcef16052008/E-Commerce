@@ -22,7 +22,10 @@ export function ProductCard({ product }: { product: Product }) {
             loading="lazy"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-neutral-400">
+          <div
+            aria-hidden="true"
+            className="flex h-full w-full items-center justify-center text-neutral-400"
+          >
             <span className="text-3xl">📕</span>
           </div>
         )}
@@ -31,7 +34,9 @@ export function ProductCard({ product }: { product: Product }) {
         <p className="text-xs uppercase tracking-wide text-neutral-500">
           {product.genre ?? "Livre"}
         </p>
-        <h3 className="mt-1 font-medium text-neutral-900 group-hover:underline">{product.title}</h3>
+        {/* h2 (pas h3) : pas de h2 intermédiaire entre le h1 de la page et
+            les cartes — l'ordre des titres doit rester séquentiel (a11y). */}
+        <h2 className="mt-1 font-medium text-neutral-900 group-hover:underline">{product.title}</h2>
         <p className="mt-0.5 text-sm text-neutral-600">{product.author}</p>
         <p className="mt-3 text-sm font-semibold text-neutral-900">
           {formatPrice(product.priceInCents, product.currency)}

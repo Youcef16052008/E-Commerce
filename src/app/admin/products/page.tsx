@@ -100,14 +100,30 @@ export default async function AdminProductsPage({
           <table className="min-w-full divide-y divide-neutral-200 text-left text-sm">
             <thead className="bg-neutral-50 text-xs uppercase tracking-wide text-neutral-500">
               <tr>
-                <th className="px-4 py-3 font-medium">Titre</th>
-                <th className="px-4 py-3 font-medium">Auteur</th>
-                <th className="px-4 py-3 font-medium">Genre</th>
-                <th className="px-4 py-3 font-medium">Format</th>
-                <th className="px-4 py-3 font-medium">Prix</th>
-                <th className="px-4 py-3 font-medium">Statut</th>
-                <th className="px-4 py-3 font-medium">Mis à jour</th>
-                <th className="px-4 py-3 font-medium text-right">Actions</th>
+                <th scope="col" className="px-4 py-3 font-medium">
+                  Titre
+                </th>
+                <th scope="col" className="px-4 py-3 font-medium">
+                  Auteur
+                </th>
+                <th scope="col" className="px-4 py-3 font-medium">
+                  Genre
+                </th>
+                <th scope="col" className="px-4 py-3 font-medium">
+                  Format
+                </th>
+                <th scope="col" className="px-4 py-3 font-medium">
+                  Prix
+                </th>
+                <th scope="col" className="px-4 py-3 font-medium">
+                  Statut
+                </th>
+                <th scope="col" className="px-4 py-3 font-medium">
+                  Mis à jour
+                </th>
+                <th scope="col" className="px-4 py-3 font-medium text-right">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100 bg-white">

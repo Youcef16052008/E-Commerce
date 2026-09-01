@@ -49,7 +49,10 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               className="h-full w-full object-cover"
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-6xl text-neutral-400">
+            <div
+              aria-hidden="true"
+              className="flex h-full w-full items-center justify-center text-6xl text-neutral-400"
+            >
               📕
             </div>
           )}
@@ -72,7 +75,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           <div className="mt-6 flex flex-col gap-3">
             <AddToCartButton productId={product.id} />
             <p className="text-xs text-neutral-500">
-              Le paiement et la bibliothèque personnelle seront activés dans les prochaines étapes.
+              Paiement sécurisé via Stripe. Votre droit d&apos;accès est délivré après confirmation
+              du paiement.
             </p>
           </div>
         </div>
