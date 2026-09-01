@@ -1,4 +1,5 @@
 import type { GutendexBook, ImportOptions, MappedProduct } from "./gutendex-types";
+import { slugify } from "@/shared/lib/slugify";
 
 /**
  * Mapping PUR Gutendex → modèle de produit Biblio.
@@ -9,18 +10,8 @@ export const SOURCE_NAME = "gutenberg";
 export const SOURCE_LABEL = "Project Gutenberg (domaine public)";
 export const DEFAULT_LICENSE = "Domaine public (États-Unis) — Project Gutenberg";
 
-/** Normalise un titre en slug (accents retirés, minuscules, tirets). */
-export function slugify(value: string): string {
-  return (
-    value
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 80) || "livre"
-  );
-}
+/** Ré-export pour compatibilité des tests unitaires existants. */
+export { slugify };
 
 /** Choisit le format e-book : EPUB prioritaire, sinon PDF. */
 export function pickFormat(formats: Record<string, string>): "epub" | "pdf" | null {

@@ -1,6 +1,6 @@
 # PROJECT_STATE — Biblio
 
-Mis à jour : 2026-08-30.
+Mis à jour : 2026-08-31.
 
 ## Objectif
 
@@ -102,11 +102,17 @@ Erreurs typées. Secrets côté serveur. Décisions dans `docs/adr/`.
       `GET /api/me/orders`, lien « Commandes » dans l'en-tête ; `order_items.quantity`
       conservée (migration `0003_order-quantity`, devises USD) ; 8 tests (5 unitaires
       statuts + 2 intégration isolation/liste), validation par la CI (Neon/Postgres).
-- [ ] Slice 7 — Admin (CRUD produits + dashboard) / Slices 8+ — voir `docs/implementation-plan.md`.
+- [x] **Slice 7 — Admin** : CRUD produits (`/admin/products`, formulaire create/edit,
+      publier/dépublier/supprimer), gestion commandes (`/admin/orders` + sélecteur de
+      statut), API `/api/admin/*` gardées par `requireAdmin` (401/403), layout admin
+      (redirect sign-in ou panneau 403), lien « Admin » dans l'en-tête, `slugify`
+      partagé, refus de suppression si produit référencé (409). Tests unitaires
+      (schemas + garde) + intégration (CRUD, slug, références, commandes).
+- [ ] Slice 8 — Dashboard admin / stats · Slices 9+ — voir `docs/implementation-plan.md`.
 
 ## Prochaine tâche
 
-- **Slice 6 — Commandes (historique)** / Slice 7 — Admin (CRUD produits + dashboard).
+- **Slice 8 — Dashboard admin / stats** (chiffres réels BDD).
 - Avant déploiement (Slice 10) : `neon deploy`/`neon config`, vars R2, webhook Stripe test.
 
 ## Problèmes connus
