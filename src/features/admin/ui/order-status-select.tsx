@@ -51,7 +51,10 @@ export function OrderStatusSelect({ orderId, current }: { orderId: string; curre
         disabled={busy}
         onChange={(e) => onChange(e.target.value as OrderStatus)}
         className="rounded-lg border border-neutral-300 bg-white px-2 py-1.5 text-sm outline-none focus:border-neutral-900 disabled:opacity-60"
-        aria-label="Statut de la commande"
+        // Nom accessible unique par ligne (le même label sur toute la table
+        // rendait l'identification de la commande ambigue pour un lecteur
+        // d'écran) : "Statut de la commande a1b2c3d4".
+        aria-label={`Statut de la commande ${orderId.slice(0, 8)}`}
       >
         {STATUSES.map((s) => (
           <option key={s} value={s}>

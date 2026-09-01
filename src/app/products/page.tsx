@@ -45,7 +45,7 @@ export default async function ProductsPage({
       {result.items.length === 0 ? (
         <div className="mt-12 rounded-xl border border-dashed border-neutral-300 py-16 text-center">
           <p className="text-lg text-neutral-500">Aucun ouvrage ne correspond à votre recherche.</p>
-          <p className="mt-1 text-sm text-neutral-400">Essayez d&apos;élargir vos filtres.</p>
+          <p className="mt-1 text-sm text-neutral-500">Essayez d&apos;élargir vos filtres.</p>
         </div>
       ) : (
         <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">

@@ -34,18 +34,33 @@ export default async function AdminOrdersPage() {
       {orders.length === 0 ? (
         <div className="mt-12 rounded-xl border border-dashed border-neutral-300 py-16 text-center">
           <p className="text-lg text-neutral-500">Aucune commande pour le moment.</p>
+          <p className="mt-1 text-sm text-neutral-500">
+            Elles apparaîtront ici dès la première vente.
+          </p>
         </div>
       ) : (
         <div className="mt-6 overflow-x-auto rounded-xl border border-neutral-200">
           <table className="min-w-full divide-y divide-neutral-200 text-left text-sm">
             <thead className="bg-neutral-50 text-xs uppercase tracking-wide text-neutral-500">
               <tr>
-                <th className="px-4 py-3 font-medium">Id</th>
-                <th className="px-4 py-3 font-medium">Client</th>
-                <th className="px-4 py-3 font-medium">Date</th>
-                <th className="px-4 py-3 font-medium">Total</th>
-                <th className="px-4 py-3 font-medium">Statut</th>
-                <th className="px-4 py-3 font-medium">Changer</th>
+                <th scope="col" className="px-4 py-3 font-medium">
+                  Id
+                </th>
+                <th scope="col" className="px-4 py-3 font-medium">
+                  Client
+                </th>
+                <th scope="col" className="px-4 py-3 font-medium">
+                  Date
+                </th>
+                <th scope="col" className="px-4 py-3 font-medium">
+                  Total
+                </th>
+                <th scope="col" className="px-4 py-3 font-medium">
+                  Statut
+                </th>
+                <th scope="col" className="px-4 py-3 font-medium">
+                  Changer
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-100 bg-white">
@@ -57,7 +72,7 @@ export default async function AdminOrdersPage() {
                   <td className="px-4 py-3">
                     <div className="font-medium">{o.userName}</div>
                     <div className="text-xs text-neutral-500">{o.userEmail}</div>
-                    <div className="text-xs text-neutral-400">
+                    <div className="text-xs text-neutral-500">
                       {o.itemCount} article{o.itemCount > 1 ? "s" : ""}
                     </div>
                   </td>
