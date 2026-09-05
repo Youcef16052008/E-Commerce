@@ -437,13 +437,13 @@ entitlement supprimé → `POST /api/me/library/[productId]/download` → **403*
 
 ## Items légers (registre — pas d'action immédiate)
 
-| ID  | Constat                                                                                                       | Correction suggérée                                                                                                  | Quand        |
-| --- | ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ------------ |
-| L-1 | Pas de machine à états : l'API admin permet `paid → pending`, `refunded → paid`, n'importe quoi               | Tableau des transitions autorisées + validation (ex. `refunded` terminal)                                            | P2, avec H-6 |
-| L-2 | `createCheckout` : `currency = cartItems[0].currency`, somme de centimes multi-devises possible               | Check mono-devises au checkout → 400 explicite (la boutique est USD-only : le rendre une règle, pas une supposition) | P2           |
-| L-3 | `STRIPE_TAX_CODE` lu à l'import du module (`stripe-checkout.ts`) : verrouillé au premier import, non testable | Lire dans la fonction `createCheckoutSession`                                                                        | P3 (1 ligne) |
-| L-4 | Les comptes e2e (`e2e-*@biblio.test`) s'accumulent sans cleanup                                               | Acceptable en CI (base éphémère) ; en base de dev locale, cleanup manuel ou script                                   | P3           |
-| L-5 | `docs/lighthouse.md` : mesures sur CPU de sandbox partagée (documenté tel quel)                               | Re-mesurer sur l'URL Vercel (mobile + desktop) **avant** de citer quoi que ce soit dans l'étude de cas               | au deploy    |
+| ID  | Constat                                                                                                       | Correction suggérée                                                                                                 | Quand                     |
+| --- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| L-1 | Pas de machine à états : l'API admin permet `paid → pending`, `refunded → paid`, n'importe quoi               | Tableau des transitions autorisées + validation (ex. `refunded` terminal)                                           | ✅ 2026-09-05 (`5b6c1a2`) |
+| L-2 | `createCheckout` : `currency = cartItems[0].currency`, somme de centimes multi-devises possible               | Check mono-devises au checkout → 400 explicite (la boutique est USD-only : le rendu une règle, pas une supposition) | ✅ 2026-09-05 (`f6362db`) |
+| L-3 | `STRIPE_TAX_CODE` lu à l'import du module (`stripe-checkout.ts`) : verrouillé au premier import, non testable | Lire dans la fonction `createCheckoutSession`                                                                       | ✅ 2026-09-05 (`89c9bef`) |
+| L-4 | Les comptes e2e (`e2e-*@biblio.test`) s'accumulent sans cleanup                                               | Acceptable en CI (base éphémère) ; en base de dev locale, cleanup manuel ou script                                  | ✅ 2026-09-05 (`89c9bef`) |
+| L-5 | `docs/lighthouse.md` : mesures sur CPU de sandbox partagée (documenté tel quel)                               | Re-mesurer sur l'URL Vercel (mobile + desktop) **avant** de citer quoi que ce soit dans l'étude de cas              | ⏳ au deploy (pas d'URL)  |
 
 ## Ce qui a été revu et est solide (ne pas toucher)
 
@@ -512,6 +512,13 @@ route HTTP). **Porte d'entrée : aucun déploiement réel (Slice 10) avant les b
 - **Tests** : +20 tests au total (13 d'intégration du parcours via la route HTTP signée —
   exactement le chemin Vercel — + 2 unit de la config headers + 5 d'intégration du
   remboursement). La CI ajoute les e2e headers (inexécutables dans le sandbox).
+- **Items légers L-1..L-4 exécutés (2026-09-05)** — `5b6c1a2` (L-1 machine à états
+  `features/orders/domain/order-transitions.ts` + UI filtrée + 10 tests), `f6362db`
+  (L-2 `MIXED_CURRENCY` 400 avant tout appel Stripe + premier fichier de tests
+  d'intégration `createCheckout`), `89c9bef` (L-3 tax code lu à l'appel ; L-4
+  `npm run db:cleanup:tests` + global-setup e2e auto-nettoyant). Seule **L-5**
+  reste ouverte — elle est structurellement bloquée par le deploy (besoin de
+  l'URL Vercel pour re-mesurer Lighthouse en conditions réelles).
 - **Infra de test — correction forcée par la CI** : les 5 premiers commits sont passés en
   local mais sont tombés en CI sur `admin-stats.test.ts` (« expected 2 to be 1 ») —
   **pas** sur un de mes tests. Diagnostic : ce test vérifie des deltas **exacts** sur des

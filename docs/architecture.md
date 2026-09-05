@@ -72,7 +72,7 @@ graph TB
 - **features/cart** : panier persistant (BDD), ajout/retrait/quantité.
 - **features/checkout** : création Stripe Checkout Session, gestion webhooks, idempotence.
 - **features/entitlements** : droits d'accès + génération d'URL signées (downloaded links).
-- **features/orders** : commandes, historique, statuts.
+- **features/orders** : commandes, historique, statuts (machine à états des transitions).
 - **features/admin** : CRUD produits, dashboard, gestion commandes (rôle admin).
 - **shared/** : UI, config, types, lib (validation, erreurs typées).
 - **server/db** : schéma Drizzle + connexion + migrations.
@@ -120,8 +120,11 @@ erDiagram
 
 ### Checkout (session requise)
 
-- `POST /api/checkout` → crée un Stripe Checkout Session (prix relu serveur), renvoie `url`.
-- `POST /api/webhooks/stripe` → corps brut, vérif signature, traitement idempotent.
+- `POST /api/checkout` → crée un Stripe Checkout Session (prix relu serveur,
+  boutique mono-devises : panier multi-devises → `MIXED_CURRENCY` 400),
+  renvoie `url`. Erreurs : `EMPTY_CART`/`MIXED_CURRENCY` (400), `PAYMENT_ERROR` (502).
+- `POST /api/webhooks/stripe` → corps brut, vérif signature, **traitement avant
+  réponse** (500 sur erreur → Stripe réessaie), idempotent, livraison atomique.
 
 ### Bibliothèque (session requise)
 
@@ -132,6 +135,10 @@ erDiagram
 
 - `GET/POST /api/admin/products`, `PATCH/DELETE /api/admin/products/[id]`.
 - `GET /api/admin/orders`, `GET /api/admin/stats`.
+- `PATCH /api/admin/orders/[id]/status` → changement de statut contrôlé par la
+  **machine à états** (`features/orders/domain/order-transitions.ts`) : toute
+  transition non autorisée → 409 `INVALID_STATE`. `refunded` révoque les
+  entitlements de la commande (même transaction).
 
 ## 5. Authentification & autorisation
 
@@ -167,8 +174,12 @@ erDiagram
 
 ## 8. Traitement asynchrone
 
-- Webhook : réponse 2xx rapide, traitement asynchrone. Pas de queue au MVP (Webhook léger et
-  idempotent). Si les emails arrivant en V2 rendent le traitement lent, on introduira une queue.
+- Webhook : le traitement est **attendu avant la réponse** (registre H-1) — en
+  serverless, un travail laissé tourner après la réponse est tué de façon non
+  déterministe. Erreur → 500, Stripe réessaie avec backoff ; idempotence
+  (`stripe_events` + fulfillment atomique) rend le retry sans risque. Pas de
+  queue au MVP (traitement ≈ quelques dizaines de ms) ; file durable =
+  trajectoire post-MVP si le traitement devient lourd.
 
 ## 9. Observabilité
 

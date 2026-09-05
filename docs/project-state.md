@@ -1,6 +1,6 @@
 # PROJECT_STATE — Biblio
 
-Mis à jour : 2026-09-01.
+Mis à jour : 2026-09-05.
 
 ## Objectif
 
@@ -128,6 +128,16 @@ Erreurs typées. Secrets côté serveur. Décisions dans `docs/adr/`.
       `/auth/sign-in` 100/100/100/100, CLS 0 — `docs/lighthouse.md` +
       `docs/accessibility.md` (aucun score inventé ; pages protégées marquées
       « non mesurées »).
+- [x] **Durcissement (2026-09-05)** : registre `docs/hardening-plan.md` — revue
+      senior du code (pas de la doc) avant deploy. **H-1..H-6 corrigés et testés**
+      (webhook traité avant réponse + vérifications `payment_status`/montant +
+      fulfillment atomique H-1/H-3/H-4 ; pas de réutilisation de commande H-2 ;
+      6 headers de sécurité + doc alignée H-5 ; remboursement révoque H-6) et
+      **L-1..L-4 fermés** (machine à états des statuts, refus multi-devises
+      explicite, tax code lu à l'appel, cleanup données de test). **L-5 seul
+      reste ouvert** (re-mesure Lighthouse en prod — bloquée par le deploy).
+      +34 tests (135 au total), 2 incidents réels documentés sans filtre
+      (noms d'événements Stripe, race CI sur les deltas stats).
 - [ ] **Slice 10 — Déploiement** : **config + docs livrés** (section
       Production dans `.env.example` — dont `BETTER_AUTH_URL` = URL https
       publique CRITIQUE cookies ; `docs/runbook-deploy.md` 7 étapes + checklist
@@ -137,15 +147,14 @@ Erreurs typées. Secrets côté serveur. Décisions dans `docs/adr/`.
 
 ## Prochaine tâche
 
-- ✅ **DURCISSEMENT (2026-09-05) — TERMINÉ, porte d'entrée au deploy levée.** Les 4 blocs
-  de `docs/hardening-plan.md` sont exécutés et testés (H-1..H-6 corrigés, +20 tests,
-  commits `59cfcac`/`0fa83b2`/`709c28c`/`f64c79d` sur la PR #3). La CI doit rester verte
-  sur ces commits avant de continuer.
+- ✅ **DURCISSEMENT (2026-09-05) — TERMINÉ, porte d'entrée au deploy levée.** H-1..H-6 +
+  L-1..L-4 corrigés et testés, +34 tests, CI verte (registre : `docs/hardening-plan.md`,
+  écarts et incidents documentés).
 - **Slice 10 (exécution) — À FAIRE** : suivre `docs/runbook-deploy.md` (Neon → R2 →
-  Vercel → webhook Stripe test → seed admin one-shot → smoke checklist). Le runbook doit
-  refléter le durcissement (webhook traité avant réponse, idempotence) — à vérifier avant
-  d'exécuter. Ensuite ADR-005 Adopté + Lighthouse prod + Live Demo (uniquement avec une
-  URL vraie).
+  Vercel → webhook Stripe test — les 3 événements à souscrire y sont listés → seed admin
+  one-shot → smoke checklist incluant les headers de sécurité). Runbook déjà aligné sur le
+  durcissement. Ensuite ADR-005 → Adopté + Lighthouse prod (ferme L-5) + Live Demo
+  (uniquement avec une URL vraie).
 - **Slice 11** — étude de cas portfolio (après le deploy ; le récit honnête du
   durcissement est prêt dans `docs/hardening-plan.md` § étude de cas, avec les écarts
   documentés).
@@ -158,8 +167,10 @@ Erreurs typées. Secrets côté serveur. Décisions dans `docs/adr/`.
   avant réponse, `payment_status`/montant vérifiés, fulfillment transactionnel, pas de
   réutilisation de commande, headers de sécurité + doc alignée, remboursement révoque).
   Chaque entrée du registre reste : cause, scénario, sources, correction, tests, critères
-  d'acceptation — utile tel quel pour l'étude de cas (Slice 11). L-1..L-5 restent ouverts
-  (P2/P3, post-deploy).
+  d'acceptation — utile tel quel pour l'étude de cas (Slice 11). **L-1..L-4 fermés le
+  2026-09-05** (machine à états, `MIXED_CURRENCY`, tax code à l'appel,
+  `npm run db:cleanup:tests` + global-setup e2e auto-nettoyant) ; **L-5 seule reste
+  ouverte** (re-mesure Lighthouse en prod, bloquée par le deploy).
 - Vulnérabilité **moderate, dev-only** dans `esbuild` (via `drizzle-kit`), sans impact runtime ;
   le correctif proposé est un downgrade cassant → non appliqué, réévaluer (Note [npm audit]).
 - Le sandbox local : Node v20 (au lieu de 24) et bibliothèques système Playwright installées
