@@ -32,7 +32,7 @@ export function OrderStatusSelect({ orderId, current }: { orderId: string; curre
       if (!res.ok) {
         setValue(previous);
         const data = await res.json().catch(() => ({}));
-        setError(data.error ?? "Erreur");
+        setError(data.message ?? data.error ?? "Erreur");
         return;
       }
       router.refresh();

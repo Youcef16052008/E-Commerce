@@ -8,6 +8,7 @@ import {
   listAllOrdersWithUsers,
   getOrderById,
   updateOrderStatusById,
+  refundOrderById,
 } from "../infrastructure/admin-repo";
 import { orderStatusLabel } from "@/features/orders/domain/order-status";
 import type { OrderStatus } from "@/features/checkout/domain/checkout-types";
@@ -65,6 +66,27 @@ export async function updateOrderStatus(
       ok: false,
       error: { code: "VALIDATION", status: 400, message: parsed.error.message },
     };
+  }
+
+  // H-6 : le remboursement n'existe que pour une commande payée/livrée —
+  // et il RÉVOQUE les entitlements accordés par cette commande (même
+  // transaction, voir refundOrderById).
+  if (parsed.data.status === "refunded") {
+    if (existing.status !== "paid" && existing.status !== "fulfilled") {
+      return {
+        ok: false,
+        error: {
+          code: "INVALID_STATE",
+          status: 409,
+          message: "Seule une commande payée ou livrée peut être remboursée.",
+        },
+      };
+    }
+    const order = await refundOrderById(id);
+    if (!order) {
+      return { ok: false, error: { code: "NOT_FOUND", status: 404 } };
+    }
+    return { ok: true, order };
   }
 
   const order = await updateOrderStatusById(id, parsed.data.status);
