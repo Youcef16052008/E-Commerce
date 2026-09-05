@@ -137,14 +137,25 @@ Erreurs typées. Secrets côté serveur. Décisions dans `docs/adr/`.
 
 ## Prochaine tâche
 
-- **Slice 10 (exécution)** : suivre `docs/runbook-deploy.md` (Neon → R2 →
-  Vercel → webhook Stripe test → seed admin one-shot → smoke checklist) ;
-  ensuite passer ADR-005 en Adopté + scores Lighthouse prod + README Live Demo
+- **DURCISSEMENT (porte d'entrée au deploy)** : exécuter `docs/hardening-plan.md` —
+  bloc 1 (H-1+H-3+H-4 : webhook traité avant réponse + vérifications + transaction),
+  bloc 2 (H-2 : commandes), bloc 3 (H-5 : headers + doc), bloc 4 (H-6 : révocation).
+- **Slice 10 (exécution)** : uniquement APRÈS le durcissement — suivre
+  `docs/runbook-deploy.md` (Neon → R2 → Vercel → webhook Stripe test → seed admin
+  one-shot → smoke checklist) ; ensuite ADR-005 Adopté + Lighthouse prod + Live Demo
   (uniquement avec une URL vraie).
-- **Slice 11** — étude de cas portfolio (après le deploy).
+- **Slice 11** — étude de cas portfolio (après le deploy ; le récit honnête du
+  durcissement est préparé dans `docs/hardening-plan.md` § étude de cas).
 
 ## Problèmes connus
 
+- **REGISTRE DE DURCISSEMENT (2026-09-05) — `docs/hardening-plan.md`** : revue senior
+  du code (pas de la doc) avant déploiement. 6 problèmes à corriger **avant le deploy**
+  (blocant Slice 10) : H-1 webhook fire-and-forget (perte de paiements serverless),
+  H-2 réutilisation de commande par total (mauvais entitlement), H-3 pas de vérif
+  `payment_status`/montant, H-4 pas de transaction (le commentaire dit qu'il y en a une),
+  H-5 zéro header de sécurité + doc sur-claim, H-6 remboursement sans révocation.
+  Chaque entrée : cause, scénario, sources, correction, tests, critères d'acceptation.
 - Vulnérabilité **moderate, dev-only** dans `esbuild` (via `drizzle-kit`), sans impact runtime ;
   le correctif proposé est un downgrade cassant → non appliqué, réévaluer (Note [npm audit]).
 - Le sandbox local : Node v20 (au lieu de 24) et bibliothèques système Playwright installées
