@@ -512,6 +512,19 @@ route HTTP). **Porte d'entrée : aucun déploiement réel (Slice 10) avant les b
 - **Tests** : +20 tests au total (13 d'intégration du parcours via la route HTTP signée —
   exactement le chemin Vercel — + 2 unit de la config headers + 5 d'intégration du
   remboursement). La CI ajoute les e2e headers (inexécutables dans le sandbox).
+- **Infra de test — correction forcée par la CI** : les 5 premiers commits sont passés en
+  local mais sont tombés en CI sur `admin-stats.test.ts` (« expected 2 to be 1 ») —
+  **pas** sur un de mes tests. Diagnostic : ce test vérifie des deltas **exacts** sur des
+  agrégats globaux de la base (méthode avant/après) ; mes nouvelles suites d'intégration
+  (qui écrivent produits/commandes) changeaient l'intercalage du parallélisme vitest et
+  écrivaient dans sa fenêtre de mesure (contaminant identifié : un produit brouillon du
+  CRUD admin créé en parallèle). Non reproductible en local (machine rapide, fenêtres qui
+  ne se chevauchent pas) — reproductible sur les 2 cœurs de la CI. Correction :
+  `fileParallelism: false` dans `vitest.config.mts` — les fichiers de test partagent UNE
+  base, donc ils s'exécutent à séquence ; la méthode en écarts n'est exacte qu'en
+  exclusivité. Leçon : **une assertion de delta sur un état global est incompatible avec
+  l'écriture concurrente** ; quand on ajoute des suites qui écrivent dans la base partagée,
+  on re-vérifie l'isolation des autres suites.
 
 ## Décisions à trancher (ma position, à contester si tu as un argument)
 
