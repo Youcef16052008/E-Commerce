@@ -11,6 +11,7 @@ import {
   refundOrderById,
 } from "../infrastructure/admin-repo";
 import { orderStatusLabel } from "@/features/orders/domain/order-status";
+import { canTransition } from "@/features/orders/domain/order-transitions";
 import type { OrderStatus } from "@/features/checkout/domain/checkout-types";
 import type { Order } from "@/server/db/schema";
 
@@ -68,20 +69,22 @@ export async function updateOrderStatus(
     };
   }
 
-  // H-6 : le remboursement n'existe que pour une commande payée/livrée —
-  // et il RÉVOQUE les entitlements accordés par cette commande (même
-  // transaction, voir refundOrderById).
+  // L-1 : machine à états — toute transition non autorisée est refusée
+  // (refunded/failed terminaux, pas de paid → pending, pas d'identité…).
+  if (!canTransition(existing.status as OrderStatus, parsed.data.status)) {
+    return {
+      ok: false,
+      error: {
+        code: "INVALID_STATE",
+        status: 409,
+        message: `Transition impossible : ${existing.status} → ${parsed.data.status}.`,
+      },
+    };
+  }
+
+  // H-6 : le remboursement révoque les entitlements accordés par cette
+  // commande (même transaction, voir refundOrderById).
   if (parsed.data.status === "refunded") {
-    if (existing.status !== "paid" && existing.status !== "fulfilled") {
-      return {
-        ok: false,
-        error: {
-          code: "INVALID_STATE",
-          status: 409,
-          message: "Seule une commande payée ou livrée peut être remboursée.",
-        },
-      };
-    }
     const order = await refundOrderById(id);
     if (!order) {
       return { ok: false, error: { code: "NOT_FOUND", status: 404 } };

@@ -369,3 +369,93 @@ describe.skipIf(!hasDatabase)("Remboursement — révocation des droits (H-6)", 
     if (!again.ok) expect(again.error.code).toBe("INVALID_STATE");
   });
 });
+
+describe.skipIf(!hasDatabase)("Transitions de statut — machine à états (L-1)", () => {
+  const email = `it-trans-${runId}@biblio.test`;
+  let userId = "";
+  const orderIds: string[] = [];
+  let paidOrderId = "";
+  let failedOrderId = "";
+  let refundedOrderId = "";
+  let pendingOrderId = "";
+
+  async function mkOrder(status: "pending" | "paid" | "failed" | "refunded") {
+    const id = randomUUID();
+    orderIds.push(id);
+    if (status === "paid") paidOrderId = id;
+    if (status === "failed") failedOrderId = id;
+    if (status === "refunded") refundedOrderId = id;
+    if (status === "pending") pendingOrderId = id;
+    await db.insert(orders).values({
+      id,
+      userId,
+      status,
+      totalInCents: 100,
+      currency: "usd",
+      paidAt: status === "paid" ? new Date() : null,
+    });
+    return id;
+  }
+
+  beforeAll(async () => {
+    const [u] = await db
+      .insert(user)
+      .values({ id: randomUUID(), name: "Trans IT", email, role: "customer" })
+      .returning({ id: user.id });
+    userId = u.id;
+  });
+
+  afterAll(async () => {
+    for (const id of orderIds) {
+      await db
+        .delete(orders)
+        .where(eq(orders.id, id))
+        .catch(() => undefined);
+    }
+    await db
+      .delete(user)
+      .where(eq(user.email, email))
+      .catch(() => undefined);
+  });
+
+  async function expectRejected(orderId: string, to: "pending" | "paid" | "fulfilled") {
+    const res = await updateOrderStatus(orderId, { status: to });
+    expect(res.ok, `${orderId} → ${to} doit être refusé`).toBe(false);
+    if (!res.ok) {
+      expect(res.error.code).toBe("INVALID_STATE");
+      expect(res.error.status).toBe(409);
+      expect(res.error.message ?? "").toContain("→");
+    }
+  }
+
+  it("refuse paid → pending (on ne rétrograde pas une commande payée)", async () => {
+    await mkOrder("paid");
+    await expectRejected(paidOrderId, "pending");
+    const rows = await db.select().from(orders).where(eq(orders.id, paidOrderId)).limit(1);
+    expect(rows[0].status).toBe("paid");
+  });
+
+  it("refuse failed → pending et paid (failed est terminal)", async () => {
+    await mkOrder("failed");
+    await expectRejected(failedOrderId, "pending");
+    await expectRejected(failedOrderId, "paid");
+  });
+
+  it("refuse refunded → paid (refunded est terminal)", async () => {
+    await mkOrder("refunded");
+    await expectRejected(refundedOrderId, "paid");
+  });
+
+  it("refuse la transition identité (paid → paid) et pending → fulfilled", async () => {
+    await mkOrder("paid");
+    await mkOrder("pending");
+    await expectRejected(paidOrderId, "paid");
+    await expectRejected(pendingOrderId, "fulfilled");
+  });
+
+  it("refuse pending → refunded (le remboursement exige paid/fulfilled)", async () => {
+    const res = await updateOrderStatus(pendingOrderId, { status: "refunded" });
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.error.code).toBe("INVALID_STATE");
+  });
+});
