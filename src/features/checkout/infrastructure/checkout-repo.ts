@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/server/db";
 import {
   orders,
@@ -68,14 +68,6 @@ export async function createPendingOrder(
   return { orderId, isNew: existing.length === 0 };
 }
 
-/** Marque une commande payée (après webhook vérifié). */
-export function markOrderPaid(orderId: string) {
-  return db
-    .update(orders)
-    .set({ status: "paid" as OrderStatus, paidAt: new Date() })
-    .where(eq(orders.id, orderId));
-}
-
 /** Enregistre un évènement Stripe de façon idempotente (retourne false si déjà traité). */
 export async function recordStripeEvent(eventId: string, type: string): Promise<boolean> {
   const inserted = await db
@@ -91,32 +83,73 @@ export function getOrderItems(orderId: string) {
   return db.select().from(orderItems).where(eq(orderItems.orderId, orderId));
 }
 
-/**
- * Crée des entitlements (droits d'accès) dans une transaction, avec un seul droit
- * par produit acheté (contrainte unique). Retourne le nombre créé.
- */
-export async function grantEntitlements(userId: string, orderId: string) {
-  const items = await getOrderItems(orderId);
-  let created = 0;
-  for (const item of items) {
-    const res = await db
-      .insert(entitlements)
-      .values({
-        id: crypto.randomUUID().replace(/-/g, ""),
-        userId,
-        productId: item.productId,
-        orderId,
-      })
-      .onConflictDoNothing({ target: [entitlements.userId, entitlements.productId] })
-      .returning({ id: entitlements.id });
-    created += res.length;
-  }
-  return created;
+/** Commande + total, avec vérification que l'ID user correspond (anti-falsification). */
+export async function getOrderForWebhook(
+  orderId: string,
+  userId: string,
+): Promise<{ id: string; totalInCents: number } | null> {
+  const rows = await db
+    .select({ id: orders.id, totalInCents: orders.totalInCents })
+    .from(orders)
+    .where(and(eq(orders.id, orderId), eq(orders.userId, userId)))
+    .limit(1);
+  return rows[0] ?? null;
 }
 
-/** Vide le panier de l'utilisateur. */
-export function clearCartForUser(userId: string) {
-  return db.delete(cartItems).where(eq(cartItems.userId, userId));
+/**
+ * Fulfille une commande payée ATOMIQUEMENT (registre H-4) :
+ *   1. commande → `paid` (uniquement si elle est `pending` ou `failed`),
+ *   2. entitlements accordés (un droit par produit acheté, unique (user, produit)),
+ *   3. panier de l'utilisateur vidé.
+ * Tout se passe dans UNE transaction : en cas d'erreur, rien n'est commité
+ * (jamais de commande marquée payée sans ses droits, ni état partiel).
+ *
+ * Retourne le nombre d'entitlements créés, ou `null` si la commande n'est pas
+ * éligible (déjà payée/fulfilled/refundée) — garde d'idempotence.
+ */
+export async function fulfillPaidOrder(userId: string, orderId: string): Promise<number | null> {
+  return db.transaction(async (tx) => {
+    const updated = await tx
+      .update(orders)
+      .set({ status: "paid" as OrderStatus, paidAt: new Date() })
+      .where(and(eq(orders.id, orderId), inArray(orders.status, ["pending", "failed"])))
+      .returning({ id: orders.id });
+    if (updated.length === 0) {
+      return null;
+    }
+
+    const items = await tx.select().from(orderItems).where(eq(orderItems.orderId, orderId));
+    let created = 0;
+    for (const item of items) {
+      const res = await tx
+        .insert(entitlements)
+        .values({
+          id: crypto.randomUUID().replace(/-/g, ""),
+          userId,
+          productId: item.productId,
+          orderId,
+        })
+        .onConflictDoNothing({ target: [entitlements.userId, entitlements.productId] })
+        .returning({ id: entitlements.id });
+      created += res.length;
+    }
+
+    await tx.delete(cartItems).where(eq(cartItems.userId, userId));
+    return created;
+  });
+}
+
+/**
+ * Marque une commande `failed` (événement `async_payment_failed`) : uniquement si
+ * encore `pending` — ne remplace jamais `paid`/`fulfilled`/`refunded`.
+ */
+export async function markOrderFailed(orderId: string): Promise<boolean> {
+  const updated = await db
+    .update(orders)
+    .set({ status: "failed" as OrderStatus })
+    .where(and(eq(orders.id, orderId), eq(orders.status, "pending")))
+    .returning({ id: orders.id });
+  return updated.length > 0;
 }
 
 /** Récupère les produits publiés (source de vérité du prix) du panier. */

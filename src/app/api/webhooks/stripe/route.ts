@@ -8,7 +8,11 @@ import {
  * POST /api/webhooks/stripe — réception des évènements Stripe.
  * - Le corps est lu en BRUT (`request.text()`), jamais JSON-parsé avant vérif.
  * - La signature est vérifiée avec `constructEvent` (source de vérité).
- * - Réponse 200 rapide ; traitement asynchrone.
+ * - Le traitement est ATTENDU avant de répondre (registre H-1) : en
+ *   serverless (Vercel), un travail laissé tourner après la réponse est tué de
+ *   façon non déterministe → perte de paiements. En cas d'erreur, on répond
+ *   500 : Stripe réessaie avec backoff, et le traitement est idempotent
+ *   (table `stripe_events` + fulfillment atomique).
  */
 export async function POST(request: NextRequest) {
   const rawBody = await request.text();
@@ -19,13 +23,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "invalid_signature" }, { status: 400 });
   }
 
-  // Réponse 2xx immédiate ; le traitement lourd tourne en arrière-plan.
-  // On ne bloque pas Stripe (il ferait des retries si on dépasse le délai).
-  setTimeout(() => {
-    handleWebhook(event).catch((err) => {
-      console.error("[webhook] processing error", err, { eventId: event.id, type: event.type });
-    });
-  }, 0);
-
-  return NextResponse.json({ received: true });
+  try {
+    await handleWebhook(event);
+    return NextResponse.json({ received: true });
+  } catch (err) {
+    console.error("[webhook] processing error", err, { eventId: event.id, type: event.type });
+    return NextResponse.json({ error: "processing_failed" }, { status: 500 });
+  }
 }
