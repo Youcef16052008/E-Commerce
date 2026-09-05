@@ -148,7 +148,13 @@ erDiagram
 - Prix toujours relu depuis la BDD, jamais depuis le client.
 - Validation **Zod** à toutes les frontières (publiques et privées).
 - Erreurs typées ; aucun détail interne exposé (message générique en prod).
-- Headers de sécurité, cookies httpOnly+secure+sameSite, CSRF géré par les Server Actions de Next.
+- **Headers de sécurité** définis dans `next.config.ts` et figés par test
+  (unit + e2e) : `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`,
+  `Referrer-Policy: no-referrer`, `Strict-Transport-Security` (effectif derrière
+  TLS), `Permissions-Policy` (caméra/mic/géo/paiement désactivés),
+  `Cross-Origin-Resource-Policy: same-origin`.
+- Cookies (Better Auth) : `httpOnly`, `sameSite=lax`, `secure` en production (TLS).
+- CSRF : Server Actions de Next (liées aux formulaires + SameSite), pas de token manuel.
 - Secrets : uniquement côté serveur ; `.env.example` fourni ; `.env*` jamais commité.
 - Rate limiting sur auth (plugin Better Auth) et download.
 
