@@ -11,4 +11,7 @@ export interface CheckoutResult {
 }
 
 export type CheckoutError =
-  { code: "UNAUTHORIZED" } | { code: "EMPTY_CART" } | { code: "PAYMENT_ERROR" };
+  | { code: "UNAUTHORIZED" }
+  | { code: "EMPTY_CART" }
+  | { code: "MIXED_CURRENCY" }
+  | { code: "PAYMENT_ERROR" };

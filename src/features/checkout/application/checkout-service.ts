@@ -5,6 +5,9 @@ import type { CheckoutResult, CheckoutError } from "../domain/checkout-types";
 /**
  * Service de création d'un checkout.
  * - Re-vérifie le panier côté serveur (prix depuis `products`).
+ * - Boutique mono-devises (Stripe Checkout est mono-devises) : un panier
+ *   multi-devises est REFUSÉ explicitement (registre L-2) — la règle existe,
+ *   elle n'est plus une supposition.
  * - Crée une commande `pending` (nouvelle à chaque checkout, H-2) et ses items (snapshot).
  * - Crée une session Stripe avec des prix serveur et un idempotency-key.
  * - Renvoie l'URL de redirection.
@@ -15,6 +18,11 @@ export async function createCheckout(
   const cartItems = await getCartForCheckout(userId);
   if (cartItems.length === 0) {
     return { ok: false, error: { code: "EMPTY_CART" } };
+  }
+
+  const currencies = new Set(cartItems.map((it) => it.currency));
+  if (currencies.size > 1) {
+    return { ok: false, error: { code: "MIXED_CURRENCY" } };
   }
 
   const currency = cartItems[0].currency;
