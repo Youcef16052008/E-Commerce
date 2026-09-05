@@ -100,9 +100,10 @@ export async function handleWebhook(event: Stripe.Event): Promise<WebhookResult>
 
   // Les événements `async_payment_*` ne font pas partie de l'union typée du
   // SDK Stripe : on les compare en string brut (les types du SDK ne sont pas
-  // exhaustifs côté réception).
+  // exhaustifs côté réception). Noms EXACTS de la API Stripe — avec le préfixe
+  // `checkout.session.` : c'est l'identifiant réel que Stripe envoie.
   const type: string = event.type;
-  if (type === "async_payment_failed") {
+  if (type === "checkout.session.async_payment_failed") {
     const session = event.data.object as Stripe.Checkout.Session;
     const orderId = session.metadata?.orderId;
     if (!orderId) {
@@ -114,7 +115,7 @@ export async function handleWebhook(event: Stripe.Event): Promise<WebhookResult>
 
   switch (type) {
     case "checkout.session.completed":
-    case "async_payment_succeeded": {
+    case "checkout.session.async_payment_succeeded": {
       return fulfillFromSession(event.data.object as Stripe.Checkout.Session);
     }
     default:
