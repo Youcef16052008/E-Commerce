@@ -2,10 +2,12 @@
 
 **Cible : Vercel (Next 16) + Neon (Postgres 17) + Cloudflare R2 + Stripe (mode test).**
 
-> **Statut (2026-09-01) : config + procédure prêtes, déploiement À FAIRE.**
+> **Statut (2026-09-05) : config + procédure prêtes ET durcies (registre
+> `docs/hardening-plan.md` exécuté : H-1..H-6 + L-1..L-4), déploiement À FAIRE.**
 > Les credentials Vercel/Neon/R2 ne sont pas disponibles dans le sandbox Arena —
 > chaque étape du § Post-deploy est donc marquée « à faire ». Rien n'est
-> inventé : aucune URL live, aucun résultat de smoke test fictif.
+> inventé : aucune URL live, aucun résultat de smoke test fictif (le smoke
+> pré-deploy documenté dans `project-state.md` est **local**).
 
 ## Prérequis
 
@@ -66,8 +68,9 @@
 
 1. Vercel → « Add New… » → **Project** → importer le repo GitHub.
 2. Framework détecté : **Next.js** (ne rien modifier dans la build command :
-   `next build`). **Aucun `vercel.json` requis** (pas de rewrite/headers custom
-   au MVP — le webhook est appelé directement sur son path par Stripe).
+   `next build`). **Aucun `vercel.json` requis** (les headers de sécurité sont
+   déclarés dans `next.config.ts` et appliqués par Next au build ; le webhook
+   est appelé directement sur son path par Stripe).
 3. **Environment Variables** (Project → Settings → Environment Variables) sur
    les scopes **Production + Preview** :
 
