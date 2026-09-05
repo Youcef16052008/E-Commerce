@@ -138,7 +138,13 @@ Erreurs typées. Secrets côté serveur. Décisions dans `docs/adr/`.
       reste ouvert** (re-mesure Lighthouse en prod — bloquée par le deploy).
       +34 tests (135 au total), 2 incidents réels documentés sans filtre
       (noms d'événements Stripe, race CI sur les deltas stats).
-- [ ] **Slice 10 — Déploiement** : **config + docs livrés** (section
+- [ ] **Slice 10 — Déploiement** : **smoke pré-deploy local (2026-09-05)** :
+      `next build` + `next start` locaux — `/` `/products` `/auth/sign-in` 200 ;
+      `/cart` `/orders` `/admin` 307 → `sign-in?next=…` ; `/api/admin/stats`
+      `{"error":"UNAUTHORIZED"}` 401 ; `/api/me/library` 401 ;
+      `POST /api/checkout` unauth 401 ; `/api/products` 200 JSON ; les 5 headers
+      de sécurité servis. **Local uniquement — ce n'est pas la prod.**
+      **Config + docs livrés** (section
       Production dans `.env.example` — dont `BETTER_AUTH_URL` = URL https
       publique CRITIQUE cookies ; `docs/runbook-deploy.md` 7 étapes + checklist
       ; ADR-005 complété **Proposé + blocages**). **Déploiement réel À FAIRE**
