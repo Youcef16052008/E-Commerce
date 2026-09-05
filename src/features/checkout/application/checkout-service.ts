@@ -5,7 +5,7 @@ import type { CheckoutResult, CheckoutError } from "../domain/checkout-types";
 /**
  * Service de création d'un checkout.
  * - Re-vérifie le panier côté serveur (prix depuis `products`).
- * - Crée (ou réutilise) une commande `pending` et ses items (snapshot).
+ * - Crée une commande `pending` (nouvelle à chaque checkout, H-2) et ses items (snapshot).
  * - Crée une session Stripe avec des prix serveur et un idempotency-key.
  * - Renvoie l'URL de redirection.
  */

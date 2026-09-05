@@ -1,4 +1,4 @@
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/server/db";
 import {
   orders,
@@ -14,7 +14,16 @@ import type { OrderStatus } from "../domain/checkout-types";
  * Dépôt du checkout (ordres, items, entitlements) et de l'idempotence des webhooks.
  */
 
-/** Crée (ou réutilise) une commande `pending` pour l'utilisateur et l'instancie. */
+/**
+ * Crée une NOUVELLE commande `pending` et ses items dans une transaction, et
+ * supprime au passage les anciennes commandes `pending` de l'utilisateur
+ * (checkouts abandonnés).
+ *
+ * (Registre H-2) L'ancienne version « réutilisait » la dernière commande pending
+ * au total égal : un nouveau checkout pouvait alors hériter de l'orderId d'une
+ * commande antérieure — payer le panier B pouvait délivrer les items de A.
+ * Désormais chaque checkout = une commande propre, sans accumulation.
+ */
 export async function createPendingOrder(
   userId: string,
   items: {
@@ -26,27 +35,14 @@ export async function createPendingOrder(
   }[],
   totalInCents: number,
   currency: string,
-) {
-  // Réutilise la dernière commande pending du même utilisateur si le total correspond,
-  // pour éviter d'accumuler des commandes d'exemple à chaque clic sur "Payer".
-  const id = crypto.randomUUID().replace(/-/g, "");
-  const existing = await db
-    .select({ id: orders.id })
-    .from(orders)
-    .where(
-      and(
-        eq(orders.userId, userId),
-        eq(orders.status, "pending"),
-        eq(orders.totalInCents, totalInCents),
-      ),
-    )
-    .orderBy(sql`${orders.createdAt} desc`)
-    .limit(1);
+): Promise<{ orderId: string }> {
+  const orderId = crypto.randomUUID().replace(/-/g, "");
 
-  const orderId = existing[0]?.id ?? id;
+  await db.transaction(async (tx) => {
+    // Nettoyage des checkouts abandonnés (leurs items tombent en cascade).
+    await tx.delete(orders).where(and(eq(orders.userId, userId), eq(orders.status, "pending")));
 
-  if (existing.length === 0) {
-    await db.insert(orders).values({
+    await tx.insert(orders).values({
       id: orderId,
       userId,
       status: "pending" as OrderStatus,
@@ -54,7 +50,7 @@ export async function createPendingOrder(
       currency,
     });
     for (const it of items) {
-      await db.insert(orderItems).values({
+      await tx.insert(orderItems).values({
         orderId,
         productId: it.productId,
         titleSnapshot: it.title,
@@ -63,9 +59,9 @@ export async function createPendingOrder(
         currency: it.currency,
       });
     }
-  }
+  });
 
-  return { orderId, isNew: existing.length === 0 };
+  return { orderId };
 }
 
 /** Enregistre un évènement Stripe de façon idempotente (retourne false si déjà traité). */

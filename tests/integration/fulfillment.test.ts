@@ -30,7 +30,6 @@ const stripe = new Stripe("sk_test_placeholder");
 const runId = Date.now();
 const userIds: string[] = [];
 const productIds: string[] = [];
-const orderIds: string[] = [];
 
 function sign(payload: string) {
   return stripe.webhooks.generateTestHeaderString({ payload, secret: TEST_SECRET });
@@ -128,7 +127,6 @@ describe.skipIf(!hasDatabase)("Fulfillment webhooks (intégration)", () => {
       1200,
       "usd",
     );
-    orderIds.push(orderId);
     // panier non vide avant fulfillment
     await db.insert(cartItems).values({ userId, productId, quantity: 2 }).onConflictDoNothing();
 
@@ -162,7 +160,6 @@ describe.skipIf(!hasDatabase)("Fulfillment webhooks (intégration)", () => {
       300,
       "usd",
     );
-    orderIds.push(orderId);
 
     const payload = sessionEvent(`evt_replay_${orderId}`, "checkout.session.completed", {
       metadata: { orderId, userId },
@@ -189,7 +186,6 @@ describe.skipIf(!hasDatabase)("Fulfillment webhooks (intégration)", () => {
       450,
       "usd",
     );
-    orderIds.push(orderId);
 
     const completed = sessionEvent(`evt_deferred_${orderId}`, "checkout.session.completed", {
       metadata: { orderId, userId },
@@ -222,7 +218,6 @@ describe.skipIf(!hasDatabase)("Fulfillment webhooks (intégration)", () => {
       990,
       "usd",
     );
-    orderIds.push(orderId);
 
     const payload = sessionEvent(`evt_mismatch_${orderId}`, "checkout.session.completed", {
       metadata: { orderId, userId },
@@ -244,7 +239,6 @@ describe.skipIf(!hasDatabase)("Fulfillment webhooks (intégration)", () => {
       210,
       "usd",
     );
-    orderIds.push(orderId);
 
     const failed = sessionEvent(`evt_async_fail_${orderId}`, "async_payment_failed", {
       metadata: { orderId, userId },
@@ -277,7 +271,6 @@ describe.skipIf(!hasDatabase)("Fulfillment webhooks (intégration)", () => {
       150,
       "usd",
     );
-    orderIds.push(orderId);
 
     const ok = sessionEvent(`evt_paid_first_${orderId}`, "checkout.session.completed", {
       metadata: { orderId, userId },
@@ -308,7 +301,6 @@ describe.skipIf(!hasDatabase)("Fulfillment webhooks (intégration)", () => {
       75,
       "usd",
     );
-    orderIds.push(orderId);
 
     expect(await fulfillPaidOrder(userId, orderId)).toBe(1);
     expect(await fulfillPaidOrder(userId, orderId)).toBeNull();
@@ -324,7 +316,6 @@ describe.skipIf(!hasDatabase)("Fulfillment webhooks (intégration)", () => {
       125,
       "usd",
     );
-    orderIds.push(orderId);
 
     await db.update(orders).set({ status: "refunded" }).where(eq(orders.id, orderId));
     expect(await fulfillPaidOrder(userId, orderId)).toBeNull();
@@ -342,7 +333,6 @@ describe.skipIf(!hasDatabase)("Fulfillment webhooks (intégration)", () => {
       80,
       "usd",
     );
-    orderIds.push(orderId);
     const otherUserId = await seedUser();
 
     // metadata user qui ne correspond pas à la commande → inconnue pour lui
@@ -367,7 +357,6 @@ describe.skipIf(!hasDatabase)("Fulfillment webhooks (intégration)", () => {
       90,
       "usd",
     );
-    orderIds.push(orderId);
 
     const payload = sessionEvent(`evt_badsig_${orderId}`, "checkout.session.completed", {
       metadata: { orderId, userId },
@@ -386,5 +375,86 @@ describe.skipIf(!hasDatabase)("Fulfillment webhooks (intégration)", () => {
     const res = await POST(req);
     expect(res.status).toBe(400);
     expect((await getOrder(orderId))?.status).toBe("pending");
+  });
+
+  it("H-2 : chaque checkout crée une nouvelle commande, les anciennes pending sont purgées", async () => {
+    const userId = await seedUser();
+    const p1 = await seedProduct(500);
+    const p2 = await seedProduct(700);
+
+    const a = await createPendingOrder(
+      userId,
+      [{ productId: p1, title: "Livre P1", priceInCents: 500, quantity: 1, currency: "usd" }],
+      500,
+      "usd",
+    );
+    const b = await createPendingOrder(
+      userId,
+      [{ productId: p2, title: "Livre P2", priceInCents: 700, quantity: 1, currency: "usd" }],
+      700,
+      "usd",
+    );
+
+    expect(a.orderId).not.toBe(b.orderId);
+    // l'ancienne pending A a été supprimée (avec ses items)
+    expect(await getOrder(a.orderId)).toBeNull();
+    const itemsA = await db.select().from(orderItems).where(eq(orderItems.orderId, a.orderId));
+    expect(itemsA).toHaveLength(0);
+    // la nouvelle B existe avec SON item
+    expect((await getOrder(b.orderId))?.status).toBe("pending");
+    const itemsB = await db.select().from(orderItems).where(eq(orderItems.orderId, b.orderId));
+    expect(itemsB).toHaveLength(1);
+    expect(itemsB[0].productId).toBe(p2);
+  });
+
+  it("H-2 (régression) : même total, panier différent → PAS de réutilisation de l'ancienne commande", async () => {
+    const userId = await seedUser();
+    const p1 = await seedProduct(500);
+    const p2 = await seedProduct(500);
+
+    const a = await createPendingOrder(
+      userId,
+      [{ productId: p1, title: "Livre P1", priceInCents: 500, quantity: 1, currency: "usd" }],
+      500,
+      "usd",
+    );
+    // même total (500) mais autre produit : l'ancien code réutilisait `a`
+    const b = await createPendingOrder(
+      userId,
+      [{ productId: p2, title: "Livre P2", priceInCents: 500, quantity: 1, currency: "usd" }],
+      500,
+      "usd",
+    );
+
+    expect(a.orderId).not.toBe(b.orderId);
+    expect(await getOrder(a.orderId)).toBeNull();
+    const itemsB = await db.select().from(orderItems).where(eq(orderItems.orderId, b.orderId));
+    expect(itemsB).toHaveLength(1);
+    expect(itemsB[0].productId).toBe(p2);
+  });
+
+  it("H-2 : les commandes payées ne sont JAMAIS supprimées par le nettoyage", async () => {
+    const userId = await seedUser();
+    const p1 = await seedProduct(300);
+    const p2 = await seedProduct(400);
+
+    const a = await createPendingOrder(
+      userId,
+      [{ productId: p1, title: "Livre P1", priceInCents: 300, quantity: 1, currency: "usd" }],
+      300,
+      "usd",
+    );
+    expect(await fulfillPaidOrder(userId, a.orderId)).toBe(1);
+
+    const b = await createPendingOrder(
+      userId,
+      [{ productId: p2, title: "Livre P2", priceInCents: 400, quantity: 1, currency: "usd" }],
+      400,
+      "usd",
+    );
+
+    expect((await getOrder(a.orderId))?.status).toBe("paid");
+    expect(await countEntitlements(userId)).toBe(1);
+    expect((await getOrder(b.orderId))?.status).toBe("pending");
   });
 });
