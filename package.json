@@ -21,6 +21,7 @@
     "seed:admin": "tsx scripts/seed-admin.ts",
     "seed:products": "tsx scripts/seed-products.ts",
     "seed:all": "npm run seed:admin && npm run seed:products",
+    "db:cleanup:tests": "tsx scripts/cleanup-test-data.ts",
     "books:generate": "tsx scripts/generate-books.ts",
     "books:validate": "python3 scripts/validate-books.py",
     "books:upload": "tsx scripts/upload-books.ts",
