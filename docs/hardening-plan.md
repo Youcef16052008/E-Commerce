@@ -1,6 +1,6 @@
 # Plan de durcissement — registre des problèmes & corrections
 
-**Date : 2026-09-05.** **Statut : ouvert — corrections à exécuter avant le déploiement réel (blocant Slice 10).**
+**Date : 2026-09-05.** **Statut : exécuté (2026-09-05) — blocs 1-4 corrigés et testés, poussés sur la PR #3. La porte d'entrée au déploiement (Slice 10) est levée.**
 
 Ce document est le produit d'une revue de code « senior » effectuée **sur le code, pas sur
 la documentation** : les chemins critiques (webhook, checkout, livraison d'entitlement,
@@ -464,17 +464,59 @@ Pour l'équilibre — la revue n'a pas tout troué :
 
 ## Plan d'exécution
 
-| Bloc  | Contenu                          | Pourquoi ce groupement                                                                                                                                     |
-| ----- | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **1** | **H-1 + H-3 + H-4** (un seul PR) | Même chemin de code (route → service → repo) ; les trois se corrigent ensemble — un `fulfillPaidOrder` atomique + vérifications + traitement avant réponse |
-| **2** | **H-2**                          | `createPendingOrder` + ses tests                                                                                                                           |
-| **3** | **H-5**                          | `next.config.ts` + correction `docs/architecture.md`                                                                                                       |
-| **4** | **H-6** (+ L-1 en bonus)         | Révocation + transitions                                                                                                                                   |
+| Bloc  | Contenu                          | Statut (2026-09-05)                                                                                                                                                                                                                          |
+| ----- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1** | **H-1 + H-3 + H-4** (un seul PR) | ✅ commit `59cfcac` — route attend le traitement (500 sur erreur), `payment_status` + `amount_total` + vérif d'identité user/order, `async_payment_succeeded`/`async_payment_failed` gérés, `fulfillPaidOrder` transactionnel |
+| **2** | **H-2**                          | ✅ commit `0fa83b2` — toujours une commande neuve + purge des pending obsolètes, dans une transaction                                                                                                                                        |
+| **3** | **H-5**                          | ✅ commit `709c28c` — 6 headers dans `next.config.ts`, figés en unit et vérifiés en e2e, smoke test réel (`next start` + curl), `architecture.md` réécrite                                                                                  |
+| **4** | **H-6** (+ début de L-1)         | ✅ commit `f64c79d` — `refundOrderById` transactionnel (révocation par produit, conservation si doublon couvert), garde d'état 409 pour tout ce qui n'est pas paid/fulfilled                                                                |
 
 Estimation : blocs 1-2 = l'essentiel du travail (corrections + tests d'intégration via la
-route HTTP). **Porte d'entrée : aucun déploiement réel (Slice 10) avant les blocs 1-4.**
+route HTTP). **Porte d'entrée : aucun déploiement réel (Slice 10) avant les blocs 1-4.** → levée.
+
+## Exécution — écarts par rapport aux esquisses du présent document (honnêteté)
+
+- **H-1** : comme esquissé (await avant réponse, 500 sur erreur). Test 2 de la liste
+  (« forcer une erreur de traitement → 500 ») : le scénario d'écart de montant couvre le
+  rejet **non** 5xx ; le chemin 500 est atteint par n'importe quelle exception DB — la
+  logique est vérifiée par les tests via-route, la faute d'injection n'a pas été faite.
+- **H-4** : l'idempotence par `stripe_events` reste **avant** la transaction (comme avant,
+  double file), et la transaction ajoute une **check-and-set atomique**
+  (`UPDATE … WHERE status IN (pending, failed)` → `paid`) : c'est elle qui rend le
+  fulfillment idempotent à l'intérieur, pas l'insert d'évènement. L'état partiel reste
+  impossible (garde testée : déjà soldée → null ; refundée → null).
+- **H-2** : comme recommandé — toujours une commande neuve **et** suppression des pending
+  antérieures (choix « propre pour /orders »), le tout dans la transaction de création.
+- **H-5** : au-delà des 3 headers esquissés — ajoutés `Strict-Transport-Security`,
+  `Permissions-Policy`, `Cross-Origin-Resource-Policy` ; `Referrer-Policy: no-referrer`
+  (plus strict que l'esquisse, l'app n'a aucune raison de renvoyer d'URL à quiconque).
+  CSP : P2 distincte, comme prévu.
+- **H-6** : la révocation est **par produit de la commande remboursée**, pas par
+  `entitlements.orderId` — l'entitlement d'un produit acheté en double appartient à la
+  **première** commande (index unique user+produit) ; une suppression par orderId
+  révoquerait trop ou trop peu. Règle implémentée : on révoque sauf si le produit est
+  encore couvert par une autre commande paid/fulfilled du même utilisateur.
+- **L-1 (début)** : le cas `refunded` a désormais une validation d'état (409 INVALID_STATE
+  pour pending/failed/refunded). Le reste de la machine à états (ex. `paid → pending`)
+  reste ouvert — P2.
+- **H-3b — correction post-implémentation (important, signalée sans filtre)** : la
+  première implémentation comparait `event.type` à `async_payment_succeeded` /
+  `async_payment_failed` **sans le préfixe** `checkout.session.` — or c'est le nom
+  namespaced que Stripe envoie réellement. En production, ces deux événements seraient
+  tombés dans `unhandled` (paiements différés jamais livrés, échecs jamais marqués), et
+  mes tests de l'époque reproduisaient le même mauvais nom, donc ils passaient. Trouvé en
+  confrontant la liste d'événements du SDK Stripe. Leçon codée : **le nom d'un événement
+  de plateforme se vérifie contre sa source de vérité (SDK/doc), pas contre le nom qu'on
+  avait dans la tête** — et un test qui fabrique ses propres fixtures doit d'abord
+  vérifier que la fixture est fidèle à la réalité.
+- **Tests** : +20 tests au total (13 d'intégration du parcours via la route HTTP signée —
+  exactement le chemin Vercel — + 2 unit de la config headers + 5 d'intégration du
+  remboursement). La CI ajoute les e2e headers (inexécutables dans le sandbox).
 
 ## Décisions à trancher (ma position, à contester si tu as un argument)
+
+**Les trois décisions ont été adoptées telles que recommandées (2026-09-05) et exécutées
+aux blocs 1, 2 et 4.**
 
 1. **H-1** : `await` avant réponse (recommandé MVP) — la file durable est la trajectoire
    post-MVP, pas le MVP. Conteste-moi si tu veux une file **maintenant** (je m'y

@@ -137,25 +137,29 @@ Erreurs typées. Secrets côté serveur. Décisions dans `docs/adr/`.
 
 ## Prochaine tâche
 
-- **DURCISSEMENT (porte d'entrée au deploy)** : exécuter `docs/hardening-plan.md` —
-  bloc 1 (H-1+H-3+H-4 : webhook traité avant réponse + vérifications + transaction),
-  bloc 2 (H-2 : commandes), bloc 3 (H-5 : headers + doc), bloc 4 (H-6 : révocation).
-- **Slice 10 (exécution)** : uniquement APRÈS le durcissement — suivre
-  `docs/runbook-deploy.md` (Neon → R2 → Vercel → webhook Stripe test → seed admin
-  one-shot → smoke checklist) ; ensuite ADR-005 Adopté + Lighthouse prod + Live Demo
-  (uniquement avec une URL vraie).
+- ✅ **DURCISSEMENT (2026-09-05) — TERMINÉ, porte d'entrée au deploy levée.** Les 4 blocs
+  de `docs/hardening-plan.md` sont exécutés et testés (H-1..H-6 corrigés, +20 tests,
+  commits `59cfcac`/`0fa83b2`/`709c28c`/`f64c79d` sur la PR #3). La CI doit rester verte
+  sur ces commits avant de continuer.
+- **Slice 10 (exécution) — À FAIRE** : suivre `docs/runbook-deploy.md` (Neon → R2 →
+  Vercel → webhook Stripe test → seed admin one-shot → smoke checklist). Le runbook doit
+  refléter le durcissement (webhook traité avant réponse, idempotence) — à vérifier avant
+  d'exécuter. Ensuite ADR-005 Adopté + Lighthouse prod + Live Demo (uniquement avec une
+  URL vraie).
 - **Slice 11** — étude de cas portfolio (après le deploy ; le récit honnête du
-  durcissement est préparé dans `docs/hardening-plan.md` § étude de cas).
+  durcissement est prêt dans `docs/hardening-plan.md` § étude de cas, avec les écarts
+  documentés).
 
 ## Problèmes connus
 
-- **REGISTRE DE DURCISSEMENT (2026-09-05) — `docs/hardening-plan.md`** : revue senior
-  du code (pas de la doc) avant déploiement. 6 problèmes à corriger **avant le deploy**
-  (blocant Slice 10) : H-1 webhook fire-and-forget (perte de paiements serverless),
-  H-2 réutilisation de commande par total (mauvais entitlement), H-3 pas de vérif
-  `payment_status`/montant, H-4 pas de transaction (le commentaire dit qu'il y en a une),
-  H-5 zéro header de sécurité + doc sur-claim, H-6 remboursement sans révocation.
-  Chaque entrée : cause, scénario, sources, correction, tests, critères d'acceptation.
+- **REGISTRE DE DURCISSEMENT (2026-09-05) — `docs/hardening-plan.md` : CORRIGÉ.** Revue
+  senior du code (pas de la doc) avant déploiement : 6 problèmes (H-1..H-6) + 5 items
+  légers (L-1..L-5). H-1..H-6 sont **corrigés et testés** le 2026-09-05 (webhook traité
+  avant réponse, `payment_status`/montant vérifiés, fulfillment transactionnel, pas de
+  réutilisation de commande, headers de sécurité + doc alignée, remboursement révoque).
+  Chaque entrée du registre reste : cause, scénario, sources, correction, tests, critères
+  d'acceptation — utile tel quel pour l'étude de cas (Slice 11). L-1..L-5 restent ouverts
+  (P2/P3, post-deploy).
 - Vulnérabilité **moderate, dev-only** dans `esbuild` (via `drizzle-kit`), sans impact runtime ;
   le correctif proposé est un downgrade cassant → non appliqué, réévaluer (Note [npm audit]).
 - Le sandbox local : Node v20 (au lieu de 24) et bibliothèques système Playwright installées

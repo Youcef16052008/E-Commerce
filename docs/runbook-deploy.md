@@ -112,13 +112,22 @@
 
 3. Dashboard Stripe (test) → **Developers → Webhooks → Add endpoint** :
    - URL : `https://<slug>.vercel.app/api/webhooks/stripe`
-   - Event : **`checkout.session.completed`** (le seul consommé)
-4. Le webhook lit le **corps brut** (route Next `export const runtime`
-   par défaut node, `request.text()` avant `stripe.webhooks.constructEvent`) —
-   signature vérifiée avant tout traitement ; idempotence 2 couches
-   (`Idempotency-Key` + `stripe_events.stripe_event_id` UNIQUE).
+   - Événements (les 3 consommés par l'app) :
+     - **`checkout.session.completed`**
+     - **`checkout.session.async_payment_succeeded`** (paiements à notification
+       différée — virement, SEPA… : c'est lui qui déclenche la livraison)
+     - **`checkout.session.async_payment_failed`** (commande → `failed`)
+4. Le webhook lit le **corps brut** (`request.text()` avant
+   `stripe.webhooks.constructEvent`) — signature vérifiée avant tout
+   traitement ; le traitement est **attendu avant la réponse** (500 en cas
+   d'erreur → Stripe réessaie avec backoff) ; idempotence 2 couches
+   (`Idempotency-Key` + `stripe_events.stripe_event_id` UNIQUE) ; livraison
+   atomique (transaction : `paid` + entitlements + panier). Garde-fous :
+   `payment_status === "paid"` exigé et montant Stripe = montant de la
+   commande (sinon pas de livraison, voir registre H-3 dans
+   `docs/hardening-plan.md`).
 5. Tester en réel : achat test complet (`4242 4242 4242 4242`, date future,
-   CVC quelconque) → la commande passe `paid`/`fulfilled`, l'entitlement est
+   CVC quelconque) → la commande passe `paid` (« Payée »), l'entitlement est
    créé, le téléchargement est disponible dans la bibliothèque.
 
 ## 5. Admin — mot de passe fort one-shot
@@ -146,8 +155,12 @@
       re-connexion (les 3 étapes doivent fonctionner sur le domaine https).
 - [ ] Catalogue — liste des ouvrages, recherche/filtres, fiche produit.
 - [ ] Panier → **checkout → webhook → entitlement → download** (achat test
-      4242…) : commande `Livrée` dans `/orders`, ouvrage téléchargeable dans
+      4242…) : commande `Payée` dans `/orders`, ouvrage téléchargeable dans
       `/library` (URL pré-signée R2 → 200, contenu intact).
+- [ ] **Headers de sécurité** servis par le serveur (`curl -I https://<slug>` :
+      `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`,
+      `Referrer-Policy`, `Strict-Transport-Security`,
+      `Cross-Origin-Resource-Policy`).
 - [ ] Admin — compte non admin : `/admin` → panneau **403** et
       `GET /api/admin/stats` → **403** ; compte admin : `/admin` → **200** avec
       les **stats réelles** (produits/commandes/revenu/clients cohérents avec
