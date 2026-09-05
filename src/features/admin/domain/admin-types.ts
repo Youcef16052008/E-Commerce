@@ -54,7 +54,13 @@ export interface AdminOrderView {
 }
 
 export type AdminErrorCode =
-  "UNAUTHORIZED" | "FORBIDDEN" | "VALIDATION" | "NOT_FOUND" | "SLUG_TAKEN" | "PRODUCT_REFERENCED";
+  | "UNAUTHORIZED"
+  | "FORBIDDEN"
+  | "VALIDATION"
+  | "NOT_FOUND"
+  | "SLUG_TAKEN"
+  | "PRODUCT_REFERENCED"
+  | "INVALID_STATE";
 
 export type AdminError = {
   code: AdminErrorCode;

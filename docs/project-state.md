@@ -1,6 +1,6 @@
 # PROJECT_STATE — Biblio
 
-Mis à jour : 2026-08-31.
+Mis à jour : 2026-09-05.
 
 ## Objectif
 
@@ -108,15 +108,75 @@ Erreurs typées. Secrets côté serveur. Décisions dans `docs/adr/`.
       (redirect sign-in ou panneau 403), lien « Admin » dans l'en-tête, `slugify`
       partagé, refus de suppression si produit référencé (409). Tests unitaires
       (schemas + garde) + intégration (CRUD, slug, références, commandes).
-- [ ] Slice 8 — Dashboard admin / stats · Slices 9+ — voir `docs/implementation-plan.md`.
+- [x] **Slice 8 — Dashboard admin / stats** : `GET /api/admin/stats` (gardé par
+      `requireAdmin` 401/403) + dashboard `/admin` avec **chiffres réels BDD**
+      (produits total/publiés/brouillons, commandes total + répartition 5
+      statuts, revenu USD = **paid+fulfilled uniquement** — jamais
+      pending/failed/refunded, clients, 5 dernières commandes, top 5 ventes par
+      unités). Agrégations SQL Drizzle (count/sum/groupBy, `Promise.all`,
+      zéro N+1), règle métier dans le domaine (`REVENUE_ORDER_STATUSES`),
+      tests unitaires (11 : règles + garde route) + intégration (7, méthode en
+      écarts before/after, cleanup). Placeholder « arriveront plus tard »
+      supprimé.
+- [x] **Slice 9 — Qualité & accessibilité** : a11y (contrastes 2,4:1→4,6:1,
+      ordre des titres h1→h2, `th scope`, skip-link, `aria-label` unique,
+      placeholders `aria-hidden`), `error.tsx` + `admin/error.tsx` (FR), empty
+      states FR uniformisés, **e2e admin** (`tests/e2e/admin.spec.ts` : 401
+      redirect / 403 customer / dashboard chiffré, `globalSetup` = seed:admin
+      idempotent), **Lighthouse mesuré** (2026-09-01, LH 13.4.1, Chromium 149
+      headless, mobile) : `/` 99/100/100/100, `/products` 100/100/100/100,
+      `/auth/sign-in` 100/100/100/100, CLS 0 — `docs/lighthouse.md` +
+      `docs/accessibility.md` (aucun score inventé ; pages protégées marquées
+      « non mesurées »).
+- [x] **Durcissement (2026-09-05)** : registre `docs/hardening-plan.md` — revue
+      senior du code (pas de la doc) avant deploy. **H-1..H-6 corrigés et testés**
+      (webhook traité avant réponse + vérifications `payment_status`/montant +
+      fulfillment atomique H-1/H-3/H-4 ; pas de réutilisation de commande H-2 ;
+      6 headers de sécurité + doc alignée H-5 ; remboursement révoque H-6) et
+      **L-1..L-4 fermés** (machine à états des statuts, refus multi-devises
+      explicite, tax code lu à l'appel, cleanup données de test). **L-5 seul
+      reste ouvert** (re-mesure Lighthouse en prod — bloquée par le deploy).
+      +34 tests (135 au total), 2 incidents réels documentés sans filtre
+      (noms d'événements Stripe, race CI sur les deltas stats).
+- [ ] **Slice 10 — Déploiement** : **smoke pré-deploy local (2026-09-05)** :
+      `next build` + `next start` locaux — `/` `/products` `/auth/sign-in` 200 ;
+      `/cart` `/orders` `/admin` 307 → `sign-in?next=…` ; `/api/admin/stats`
+      `{"error":"UNAUTHORIZED"}` 401 ; `/api/me/library` 401 ;
+      `POST /api/checkout` unauth 401 ; `/api/products` 200 JSON ; les 5 headers
+      de sécurité servis. **Local uniquement — ce n'est pas la prod.**
+      **Config + docs livrés** (section
+      Production dans `.env.example` — dont `BETTER_AUTH_URL` = URL https
+      publique CRITIQUE cookies ; `docs/runbook-deploy.md` 7 étapes + checklist
+      ; ADR-005 complété **Proposé + blocages**). **Déploiement réel À FAIRE**
+      (credentials Vercel/Neon/R2 absents du sandbox) — aucune URL live, aucun
+      résultat de smoke test inventé.
 
 ## Prochaine tâche
 
-- **Slice 8 — Dashboard admin / stats** (chiffres réels BDD).
-- Avant déploiement (Slice 10) : `neon deploy`/`neon config`, vars R2, webhook Stripe test.
+- ✅ **DURCISSEMENT (2026-09-05) — TERMINÉ, porte d'entrée au deploy levée.** H-1..H-6 +
+  L-1..L-4 corrigés et testés, +34 tests, CI verte (registre : `docs/hardening-plan.md`,
+  écarts et incidents documentés).
+- **Slice 10 (exécution) — À FAIRE** : suivre `docs/runbook-deploy.md` (Neon → R2 →
+  Vercel → webhook Stripe test — les 3 événements à souscrire y sont listés → seed admin
+  one-shot → smoke checklist incluant les headers de sécurité). Runbook déjà aligné sur le
+  durcissement. Ensuite ADR-005 → Adopté + Lighthouse prod (ferme L-5) + Live Demo
+  (uniquement avec une URL vraie).
+- **Slice 11** — étude de cas portfolio (après le deploy ; le récit honnête du
+  durcissement est prêt dans `docs/hardening-plan.md` § étude de cas, avec les écarts
+  documentés).
 
 ## Problèmes connus
 
+- **REGISTRE DE DURCISSEMENT (2026-09-05) — `docs/hardening-plan.md` : CORRIGÉ.** Revue
+  senior du code (pas de la doc) avant déploiement : 6 problèmes (H-1..H-6) + 5 items
+  légers (L-1..L-5). H-1..H-6 sont **corrigés et testés** le 2026-09-05 (webhook traité
+  avant réponse, `payment_status`/montant vérifiés, fulfillment transactionnel, pas de
+  réutilisation de commande, headers de sécurité + doc alignée, remboursement révoque).
+  Chaque entrée du registre reste : cause, scénario, sources, correction, tests, critères
+  d'acceptation — utile tel quel pour l'étude de cas (Slice 11). **L-1..L-4 fermés le
+  2026-09-05** (machine à états, `MIXED_CURRENCY`, tax code à l'appel,
+  `npm run db:cleanup:tests` + global-setup e2e auto-nettoyant) ; **L-5 seule reste
+  ouverte** (re-mesure Lighthouse en prod, bloquée par le deploy).
 - Vulnérabilité **moderate, dev-only** dans `esbuild` (via `drizzle-kit`), sans impact runtime ;
   le correctif proposé est un downgrade cassant → non appliqué, réévaluer (Note [npm audit]).
 - Le sandbox local : Node v20 (au lieu de 24) et bibliothèques système Playwright installées

@@ -103,22 +103,70 @@
 - **Critères** : routes protégées côté serveur ; interface admin dédiée ; hors
   périmètre Slice 8 (pas de stats chiffrées).
 
-## Slice 8 — Admin dashboard / stats (P1)
+## Slice 8 — Admin dashboard / stats (P1) ✅ Done
 
 - **User story** : U9 — ventes, produits, commandes.
-- **Fichiers** : `features/admin/dashboard/*`, requêtes d'agrégation.
-- **Critères** : données réelles issues de la BDD (aucun chiffre inventé).
+- **Domaine** (`features/admin/domain/admin-stats-types.ts`) : DTO `AdminStats`
+  (produits total/publiés/brouillons, commandes total + `ordersByStatus` 5
+  statuts, `revenueInCents` + `currency: "usd"` + `paidOrdersCount`,
+  `customersTotal`, `recentOrders` ≤ 5, `topProducts` ≤ 5) + règles pures
+  testées : `REVENUE_ORDER_STATUSES = ["paid","fulfilled"]` (le revenu ne
+  compte **jamais** pending/failed/refunded), `buildOrdersByStatus` (statuts
+  absents → 0).
+- **Infra** (`admin-stats-repo.ts`) : agrégations SQL Drizzle uniquement
+  (`count`/`sum`/`groupBy`/`FILTER`), 6 requêtes exécutées en **parallèle**
+  (Promise.all) — zéro N+1, zéro chiffre hardcodé ; revenu via
+  `coalesce(sum(total_in_cents),0)` filtré `status IN (paid, fulfilled)` ;
+  top produits sur `order_items` join `orders` (statuts revenus), titre repris
+  du `title_snapshot` ; clients = `role='customer'`.
+- **Application** (`admin-stats-service.ts`) : `viewAdminStats()` → DTO de vue
+  - libellés FR (`order-status.ts`), montant/ dates formatés fr-FR.
+- **API** : `GET /api/admin/stats` via `requireAdmin()` (401/403) — contrat
+  prévu dans `docs/architecture.md`.
+- **UI** (`src/app/admin/page.tsx`) : 4 cartes chiffres (Produits, Commandes +
+  répartition par statut, Revenu USD + nb commandes payées/livrées, Clients),
+  tableau 5 dernières commandes (`th scope`, empty state FR), top 5 ventes,
+  liens nav Produits/Commandes. Placeholder « arriveront plus tard » supprimé.
+- **Tests** : unit — `tests/unit/admin-stats.test.ts` (11 : règles revenu,
+  répartition par statut, garde 401/403/200 du route handler) ; intégration —
+  `tests/integration/admin-stats.test.ts` (7, `skipIf(!hasDatabase)` : seed
+  pending+paid+fulfilled+failed+refunded → méthode en écarts before/after,
+  revenu = paid+fulfilled uniquement, recentOrders/topProducts, cleanup).
 
-## Slice 9 — Qualité & accessibilité (P1)
+## Slice 9 — Qualité & accessibilité (P1) ✅ Done
 
-- **Objectif** : état des tests e2e, accessibilité (navigation clavier, labels, contrastes, HTML sémantique), états loading/empty/error/success, responsive, Core Web Vitals.
-- **Critères** : balances Lighthouse réellement mesurées (date/env/profil conservés), pas de score inventé.
+- **Objectif** : a11y (WCAG 2.1 AA), états UI, e2e admin, Lighthouse mesuré.
+- **a11y code** (détail complet : `docs/accessibility.md`) : contrastes
+  `text-neutral-400` → `500` (2,4:1 → 4,6:1), placeholders 📕 `aria-hidden`,
+  ordre des titres (cartes catalogue/bibliothèque h3→h2, audit
+  `heading-order` corrigé), `th scope="col"` sur les tableaux admin,
+  skip-link dans le layout racine, `aria-label` unique par ligne sur le
+  sélecteur de statut de commande, `lang="fr"` conservé, `role="alert"`
+  vérifié sur chaque composant client.
+- **États UI** : `src/app/error.tsx` + `src/app/admin/error.tsx` (FR, digest,
+  « Réessayer ») ; empty states FR uniformisés ; boutons clients déjà
+  `disabled` pendant les fetch (vérifié : panier, checkout, download, actions
+  admin, formulaires auth).
+- **e2e** : `tests/e2e/admin.spec.ts` (3 tests × 2 projets) — non connecté →
+  redirect `?next=/admin`, customer → panneau 403, admin → dashboard avec 4
+  cartes chiffrées + plus de placeholder. Connexion par `goto`+`fill`+
+  `press("Enter")`. `globalSetup` Playwright = `seed:admin` idempotent
+  (e2e autonome sans seed manuel ; no-op en CI où `seed:all` a tourné).
+- **Lighthouse** : `docs/lighthouse.md` — mesures **réelles** du 2026-09-01
+  (LH 13.4.1, Chromium 149 headless, émulation mobile) : `/` 99/100/100/100,
+  `/products` 100/100/100/100, `/auth/sign-in` 100/100/100/100, CLS 0 ; pages
+  protégées marquées « non mesurées » (session requise) — aucun score inventé.
 
 ## Slice 10 — Déploiement (P0)
 
 - **Objectif** : Vercel + Neon + R2, migrations, seeds, CI/CD, monitoring.
 - **Fichiers** : config déploiement, vars d'env prod, runbook.
-- **Critères** : app publiquement déployée, webhook Stripe actif en test, checklist post-déploiement.
+- **Livré (config + docs)** : section Production dans `.env.example`,
+  `docs/runbook-deploy.md` (7 étapes + checklist post-deploy), ADR-005
+  complété (statut + blocages).
+- **Critères restants** : app publiquement déployée, webhook Stripe actif en
+  test, checklist post-déploiement exécutée — **manuel, à faire** (credentials
+  Vercel/Neon/R2 indisponibles dans le sandbox) ; détail : runbook § Post-deploy.
 
 ## Slice 11 — Portfolio / étude de cas (P0)
 

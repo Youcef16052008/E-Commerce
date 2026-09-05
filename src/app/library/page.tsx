@@ -24,7 +24,7 @@ export default async function LibraryPage() {
       {items.length === 0 ? (
         <div className="mt-10 rounded-xl border border-dashed border-neutral-300 py-16 text-center">
           <p className="text-lg text-neutral-500">Votre bibliothèque est vide.</p>
-          <p className="mt-1 text-sm text-neutral-400">
+          <p className="mt-1 text-sm text-neutral-500">
             Une fois un achat confirmé, vos ouvrages apparaîtront ici.
           </p>
           <Link
@@ -51,7 +51,10 @@ export default async function LibraryPage() {
                     loading="lazy"
                   />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center text-3xl text-neutral-400">
+                  <div
+                    aria-hidden="true"
+                    className="flex h-full w-full items-center justify-center text-3xl text-neutral-400"
+                  >
                     📕
                   </div>
                 )}
@@ -60,9 +63,13 @@ export default async function LibraryPage() {
                 <p className="text-xs uppercase tracking-wide text-neutral-500">
                   {item.genre ?? "Livre"} · {item.format?.toUpperCase()}
                 </p>
-                <Link href={`/products/${item.slug}`} className="mt-1 font-medium hover:underline">
-                  {item.title}
-                </Link>
+                {/* h2 : chaque ouvrage de la bibliothèque est une section de
+                    rang 2 (après le h1 de la page) — ordre séquentiel (a11y). */}
+                <h2 className="mt-1">
+                  <Link href={`/products/${item.slug}`} className="font-medium hover:underline">
+                    {item.title}
+                  </Link>
+                </h2>
                 <p className="text-sm text-neutral-600">{item.author}</p>
                 <div className="mt-3">
                   <DownloadButton productId={item.productId} hasFile={Boolean(item.fileUrl)} />

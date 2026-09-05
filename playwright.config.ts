@@ -2,6 +2,9 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./tests/e2e",
+  // Garantit le compte admin (seed:admin idempotent) avant les tests —
+  // la CI seed déjà via `seed:all` (no-op), localement c'est autonome.
+  globalSetup: "./tests/e2e/global-setup.ts",
   // Un seul webServer Next.js partagé : les projets sont séquencés en CI pour
   // éviter toute contention/détachement de DOM sur les clics (mobile + desktop).
   fullyParallel: false,

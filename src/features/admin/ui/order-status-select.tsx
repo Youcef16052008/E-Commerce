@@ -4,8 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { OrderStatus } from "@/features/checkout/domain/checkout-types";
 import { ORDER_STATUS_LABELS } from "@/features/orders/domain/order-status";
-
-const STATUSES: OrderStatus[] = ["pending", "paid", "fulfilled", "failed", "refunded"];
+import { allowedTransitions } from "@/features/orders/domain/order-transitions";
 
 /**
  * Sélecteur client pour changer le statut d'une commande (admin).
@@ -32,7 +31,7 @@ export function OrderStatusSelect({ orderId, current }: { orderId: string; curre
       if (!res.ok) {
         setValue(previous);
         const data = await res.json().catch(() => ({}));
-        setError(data.error ?? "Erreur");
+        setError(data.message ?? data.error ?? "Erreur");
         return;
       }
       router.refresh();
@@ -51,9 +50,14 @@ export function OrderStatusSelect({ orderId, current }: { orderId: string; curre
         disabled={busy}
         onChange={(e) => onChange(e.target.value as OrderStatus)}
         className="rounded-lg border border-neutral-300 bg-white px-2 py-1.5 text-sm outline-none focus:border-neutral-900 disabled:opacity-60"
-        aria-label="Statut de la commande"
+        // Nom accessible unique par ligne (le même label sur toute la table
+        // rendait l'identification de la commande ambigue pour un lecteur
+        // d'écran) : "Statut de la commande a1b2c3d4".
+        // Seules les transitions autorisées par la machine à états (L-1)
+        // sont proposées — l'API reste la source de vérité.
+        aria-label={`Statut de la commande ${orderId.slice(0, 8)}`}
       >
-        {STATUSES.map((s) => (
+        {[current, ...allowedTransitions(current)].map((s) => (
           <option key={s} value={s}>
             {ORDER_STATUS_LABELS[s]}
           </option>

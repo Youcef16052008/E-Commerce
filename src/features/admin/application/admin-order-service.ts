@@ -8,8 +8,10 @@ import {
   listAllOrdersWithUsers,
   getOrderById,
   updateOrderStatusById,
+  refundOrderById,
 } from "../infrastructure/admin-repo";
 import { orderStatusLabel } from "@/features/orders/domain/order-status";
+import { canTransition } from "@/features/orders/domain/order-transitions";
 import type { OrderStatus } from "@/features/checkout/domain/checkout-types";
 import type { Order } from "@/server/db/schema";
 
@@ -65,6 +67,29 @@ export async function updateOrderStatus(
       ok: false,
       error: { code: "VALIDATION", status: 400, message: parsed.error.message },
     };
+  }
+
+  // L-1 : machine à états — toute transition non autorisée est refusée
+  // (refunded/failed terminaux, pas de paid → pending, pas d'identité…).
+  if (!canTransition(existing.status as OrderStatus, parsed.data.status)) {
+    return {
+      ok: false,
+      error: {
+        code: "INVALID_STATE",
+        status: 409,
+        message: `Transition impossible : ${existing.status} → ${parsed.data.status}.`,
+      },
+    };
+  }
+
+  // H-6 : le remboursement révoque les entitlements accordés par cette
+  // commande (même transaction, voir refundOrderById).
+  if (parsed.data.status === "refunded") {
+    const order = await refundOrderById(id);
+    if (!order) {
+      return { ok: false, error: { code: "NOT_FOUND", status: 404 } };
+    }
+    return { ok: true, order };
   }
 
   const order = await updateOrderStatusById(id, parsed.data.status);

@@ -36,7 +36,10 @@ export default async function CartPage() {
             {cart.items.map((item) => (
               <li key={item.productId} className="flex items-center justify-between gap-4 p-4">
                 <div className="flex items-start gap-3">
-                  <div className="flex h-16 w-12 items-center justify-center rounded bg-neutral-100 text-xl">
+                  <div
+                    aria-hidden="true"
+                    className="flex h-16 w-12 items-center justify-center rounded bg-neutral-100 text-xl"
+                  >
                     📕
                   </div>
                   <div>
