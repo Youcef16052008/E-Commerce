@@ -464,12 +464,12 @@ Pour l'équilibre — la revue n'a pas tout troué :
 
 ## Plan d'exécution
 
-| Bloc  | Contenu                          | Statut (2026-09-05)                                                                                                                                                                                                                          |
-| ----- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Bloc  | Contenu                          | Statut (2026-09-05)                                                                                                                                                                                                           |
+| ----- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **1** | **H-1 + H-3 + H-4** (un seul PR) | ✅ commit `59cfcac` — route attend le traitement (500 sur erreur), `payment_status` + `amount_total` + vérif d'identité user/order, `async_payment_succeeded`/`async_payment_failed` gérés, `fulfillPaidOrder` transactionnel |
-| **2** | **H-2**                          | ✅ commit `0fa83b2` — toujours une commande neuve + purge des pending obsolètes, dans une transaction                                                                                                                                        |
-| **3** | **H-5**                          | ✅ commit `709c28c` — 6 headers dans `next.config.ts`, figés en unit et vérifiés en e2e, smoke test réel (`next start` + curl), `architecture.md` réécrite                                                                                  |
-| **4** | **H-6** (+ début de L-1)         | ✅ commit `f64c79d` — `refundOrderById` transactionnel (révocation par produit, conservation si doublon couvert), garde d'état 409 pour tout ce qui n'est pas paid/fulfilled                                                                |
+| **2** | **H-2**                          | ✅ commit `0fa83b2` — toujours une commande neuve + purge des pending obsolètes, dans une transaction                                                                                                                         |
+| **3** | **H-5**                          | ✅ commit `709c28c` — 6 headers dans `next.config.ts`, figés en unit et vérifiés en e2e, smoke test réel (`next start` + curl), `architecture.md` réécrite                                                                    |
+| **4** | **H-6** (+ début de L-1)         | ✅ commit `f64c79d` — `refundOrderById` transactionnel (révocation par produit, conservation si doublon couvert), garde d'état 409 pour tout ce qui n'est pas paid/fulfilled                                                  |
 
 Estimation : blocs 1-2 = l'essentiel du travail (corrections + tests d'intégration via la
 route HTTP). **Porte d'entrée : aucun déploiement réel (Slice 10) avant les blocs 1-4.** → levée.

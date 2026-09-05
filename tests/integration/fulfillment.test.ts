@@ -198,12 +198,16 @@ describe.skipIf(!hasDatabase)("Fulfillment webhooks (intégration)", () => {
     expect(await countEntitlements(userId)).toBe(0);
 
     // l'argent arrive ensuite → async_payment_succeeded → fulfillment
-    const succeeded = sessionEvent(`evt_deferred_ok_${orderId}`, "checkout.session.async_payment_succeeded", {
-      metadata: { orderId, userId },
-      payment_status: "paid",
-      amount_total: 450,
-      currency: "usd",
-    });
+    const succeeded = sessionEvent(
+      `evt_deferred_ok_${orderId}`,
+      "checkout.session.async_payment_succeeded",
+      {
+        metadata: { orderId, userId },
+        payment_status: "paid",
+        amount_total: 450,
+        currency: "usd",
+      },
+    );
     expect((await postWebhook(succeeded)).status).toBe(200);
     expect((await getOrder(orderId))?.status).toBe("paid");
     expect(await countEntitlements(userId)).toBe(1);
@@ -240,23 +244,31 @@ describe.skipIf(!hasDatabase)("Fulfillment webhooks (intégration)", () => {
       "usd",
     );
 
-    const failed = sessionEvent(`evt_async_fail_${orderId}`, "checkout.session.async_payment_failed", {
-      metadata: { orderId, userId },
-      payment_status: "unpaid",
-      amount_total: 210,
-      currency: "usd",
-    });
+    const failed = sessionEvent(
+      `evt_async_fail_${orderId}`,
+      "checkout.session.async_payment_failed",
+      {
+        metadata: { orderId, userId },
+        payment_status: "unpaid",
+        amount_total: 210,
+        currency: "usd",
+      },
+    );
     expect((await postWebhook(failed)).status).toBe(200);
     expect((await getOrder(orderId))?.status).toBe("failed");
     expect(await countEntitlements(userId)).toBe(0);
 
     // l'échec ne doit PAS écraser un paiement réalisé après coup
-    const succeeded = sessionEvent(`evt_async_ok_${orderId}`, "checkout.session.async_payment_succeeded", {
-      metadata: { orderId, userId },
-      payment_status: "paid",
-      amount_total: 210,
-      currency: "usd",
-    });
+    const succeeded = sessionEvent(
+      `evt_async_ok_${orderId}`,
+      "checkout.session.async_payment_succeeded",
+      {
+        metadata: { orderId, userId },
+        payment_status: "paid",
+        amount_total: 210,
+        currency: "usd",
+      },
+    );
     expect((await postWebhook(succeeded)).status).toBe(200);
     expect((await getOrder(orderId))?.status).toBe("paid");
     expect(await countEntitlements(userId)).toBe(1);
@@ -281,12 +293,16 @@ describe.skipIf(!hasDatabase)("Fulfillment webhooks (intégration)", () => {
     expect((await postWebhook(ok)).status).toBe(200);
     expect((await getOrder(orderId))?.status).toBe("paid");
 
-    const lateFail = sessionEvent(`evt_fail_late_${orderId}`, "checkout.session.async_payment_failed", {
-      metadata: { orderId, userId },
-      payment_status: "unpaid",
-      amount_total: 150,
-      currency: "usd",
-    });
+    const lateFail = sessionEvent(
+      `evt_fail_late_${orderId}`,
+      "checkout.session.async_payment_failed",
+      {
+        metadata: { orderId, userId },
+        payment_status: "unpaid",
+        amount_total: 150,
+        currency: "usd",
+      },
+    );
     expect((await postWebhook(lateFail)).status).toBe(200);
     expect((await getOrder(orderId))?.status).toBe("paid");
     expect(await countEntitlements(userId)).toBe(1);
