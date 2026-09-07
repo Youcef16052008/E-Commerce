@@ -116,15 +116,16 @@ erDiagram
 
 ### Panier (session requise)
 
-- `GET /api/cart`, `POST /api/cart` {productId, qty}, `PATCH /api/cart/[productId]`, `DELETE /api/cart/[productId]`.
+- `GET /api/cart`, `POST /api/cart` `{ productId, quantity: 1 }`, `PATCH /api/cart/[productId]`, `DELETE /api/cart/[productId]`. Une ligne représente une licence personnelle unique ; les quantités supérieures à 1 et les ouvrages déjà détenus sont refusés.
 
 ### Checkout (session requise)
 
-- `POST /api/checkout` → crée un Stripe Checkout Session (prix relu serveur,
-  boutique mono-devises : panier multi-devises → `MIXED_CURRENCY` 400),
-  renvoie `url`. Erreurs : `EMPTY_CART`/`MIXED_CURRENCY` (400), `PAYMENT_ERROR` (502).
+- `POST /api/checkout` → crée ou reprend une intention Stripe Checkout persistée (prix relu serveur, fingerprint déterministe + clé d'idempotence liée à l'ordre). Boutique mono-devises : panier multi-devises → `MIXED_CURRENCY` 400 ; licences déjà détenues ou intention non payable → 409 ; erreur Stripe → 502.
 - `POST /api/webhooks/stripe` → corps brut, vérif signature, **traitement avant
-  réponse** (500 sur erreur → Stripe réessaie), idempotent, livraison atomique.
+  réponse** (500 sur erreur → Stripe réessaie). L'enregistrement de l'événement,
+  le passage à `paid`, les entitlements et la suppression des seules lignes de
+  panier payées sont atomiques. Les événements async et l'expiration de Checkout
+  sont également traités.
 
 ### Bibliothèque (session requise)
 
@@ -135,10 +136,10 @@ erDiagram
 
 - `GET/POST /api/admin/products`, `PATCH/DELETE /api/admin/products/[id]`.
 - `GET /api/admin/orders`, `GET /api/admin/stats`.
-- `PATCH /api/admin/orders/[id]/status` → changement de statut contrôlé par la
-  **machine à états** (`features/orders/domain/order-transitions.ts`) : toute
-  transition non autorisée → 409 `INVALID_STATE`. `refunded` révoque les
-  entitlements de la commande (même transaction).
+- `PATCH /api/admin/orders/[id]/status` → seule la transition opérationnelle
+  `paid → fulfilled` est manuelle. Les statuts de paiement, d'échec et de
+  remboursement sont réservés aux workflows/webhooks Stripe ; toute tentative
+  manuelle reçoit 409 `PAYMENT_STATUS_MANAGED_BY_STRIPE`.
 
 ## 5. Authentification & autorisation
 

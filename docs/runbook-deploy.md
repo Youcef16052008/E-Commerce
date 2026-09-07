@@ -115,20 +115,23 @@
 
 3. Dashboard Stripe (test) → **Developers → Webhooks → Add endpoint** :
    - URL : `https://<slug>.vercel.app/api/webhooks/stripe`
-   - Événements (les 3 consommés par l'app) :
+   - Événements (les 4 consommés par l'app) :
      - **`checkout.session.completed`**
      - **`checkout.session.async_payment_succeeded`** (paiements à notification
        différée — virement, SEPA… : c'est lui qui déclenche la livraison)
      - **`checkout.session.async_payment_failed`** (commande → `failed`)
+     - **`checkout.session.expired`** (libère le fingerprint de checkout afin
+       qu'un panier expiré puisse démarrer une nouvelle intention)
 4. Le webhook lit le **corps brut** (`request.text()` avant
    `stripe.webhooks.constructEvent`) — signature vérifiée avant tout
    traitement ; le traitement est **attendu avant la réponse** (500 en cas
    d'erreur → Stripe réessaie avec backoff) ; idempotence 2 couches
    (`Idempotency-Key` + `stripe_events.stripe_event_id` UNIQUE) ; livraison
    atomique (transaction : `paid` + entitlements + panier). Garde-fous :
-   `payment_status === "paid"` exigé et montant Stripe = montant de la
-   commande (sinon pas de livraison, voir registre H-3 dans
-   `docs/hardening-plan.md`).
+   `payment_status === "paid"` exigé, session Stripe et montant/devise Stripe
+   comparés à la commande. L'insertion de `stripe_events` est dans la même
+   transaction que `paid` + entitlements + panier ciblé : une erreur retourne
+   500 et Stripe peut rejouer l'événement sans perdre la délivrance.
 5. Tester en réel : achat test complet (`4242 4242 4242 4242`, date future,
    CVC quelconque) → la commande passe `paid` (« Payée »), l'entitlement est
    créé, le téléchargement est disponible dans la bibliothèque.

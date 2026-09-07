@@ -14,4 +14,7 @@ export type CheckoutError =
   | { code: "UNAUTHORIZED" }
   | { code: "EMPTY_CART" }
   | { code: "MIXED_CURRENCY" }
+  | { code: "INVALID_LICENSE_QUANTITY" }
+  | { code: "ALREADY_OWNED"; productIds: string[] }
+  | { code: "CHECKOUT_NOT_AVAILABLE" }
   | { code: "PAYMENT_ERROR" };

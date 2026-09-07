@@ -7,7 +7,9 @@ import {
   primaryKey,
   uniqueIndex,
   index,
+  check,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { user } from "./auth-schema";
 
 /**
@@ -61,10 +63,15 @@ export const cartItems = pgTable(
     productId: text("product_id")
       .notNull()
       .references(() => products.id, { onDelete: "cascade" }),
+    // A cart row represents one non-transferable personal licence, never a
+    // multi-unit physical inventory reservation.
     quantity: integer("quantity").notNull().default(1),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [primaryKey({ columns: [table.userId, table.productId] })],
+  (table) => [
+    primaryKey({ columns: [table.userId, table.productId] }),
+    check("cart_items_personal_license_quantity", sql`${table.quantity} = 1`),
+  ],
 );
 
 export const orders = pgTable(
@@ -82,12 +89,20 @@ export const orders = pgTable(
     totalInCents: integer("total_in_cents").notNull(),
     // Monnaie unique de la boutique : USD (Stripe Checkout mono-devise).
     currency: text("currency").notNull().default("usd"),
+    /** Stable fingerprint of a pending basket. It makes repeated clicks and
+     * concurrent requests converge on one Stripe Checkout intent. */
+    checkoutKey: text("checkout_key"),
+    stripeCheckoutSessionId: text("stripe_checkout_session_id"),
+    stripePaymentIntentId: text("stripe_payment_intent_id"),
+    checkoutExpiresAt: timestamp("checkout_expires_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     paidAt: timestamp("paid_at", { withTimezone: true }),
   },
   (table) => [
     index("orders_user_idx").on(table.userId),
     index("orders_status_idx").on(table.status),
+    uniqueIndex("orders_checkout_key_idx").on(table.checkoutKey),
+    uniqueIndex("orders_stripe_checkout_session_idx").on(table.stripeCheckoutSessionId),
   ],
 );
 

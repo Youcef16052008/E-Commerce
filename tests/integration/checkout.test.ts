@@ -4,6 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/server/db";
 import { user, orders, orderItems, products, cartItems } from "@/server/db/schema";
 import { createCheckout } from "@/features/checkout/application/checkout-service";
+import { createOrReusePendingOrder } from "@/features/checkout/infrastructure/checkout-repo";
 import { hasDatabase } from "./has-database";
 
 /**
@@ -124,5 +125,36 @@ describe.skipIf(!hasDatabase)("createCheckout (intégration)", () => {
     // le panier « vide côté serveur » → EMPTY_CART, jamais un checkout secret
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.error.code).toBe("EMPTY_CART");
+  });
+
+  it("le même fingerprint concurrent réutilise une seule commande et un seul snapshot", async () => {
+    const productId = await seedProduct(375, "usd");
+    const input = {
+      userId,
+      items: [
+        {
+          productId,
+          title: "Intention sûre",
+          priceInCents: 375,
+          quantity: 1,
+          currency: "usd",
+        },
+      ],
+      totalInCents: 375,
+      currency: "usd",
+      checkoutKey: `it-stable-intent-${randomUUID()}`,
+    };
+
+    const [first, second] = await Promise.all([
+      createOrReusePendingOrder(input),
+      createOrReusePendingOrder(input),
+    ]);
+
+    expect(first.id).toBe(second.id);
+    expect([first.created, second.created].filter(Boolean)).toHaveLength(1);
+    orderIds.push(first.id);
+    const items = await db.select().from(orderItems).where(eq(orderItems.orderId, first.id));
+    expect(items).toHaveLength(1);
+    expect(items[0].productId).toBe(productId);
   });
 });

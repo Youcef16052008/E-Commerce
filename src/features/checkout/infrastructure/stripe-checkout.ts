@@ -13,6 +13,10 @@ import { getStripe } from "@/server/payments/stripe";
  * l'import du module — verrouillée au premier import, impossible à changer
  * sans recharger le processus.
  */
+export async function getCheckoutSession(sessionId: string) {
+  return getStripe().checkout.sessions.retrieve(sessionId);
+}
+
 export async function createCheckoutSession(params: {
   orderId: string;
   userId: string;

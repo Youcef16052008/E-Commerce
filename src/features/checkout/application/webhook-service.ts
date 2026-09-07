@@ -1,36 +1,22 @@
 import type Stripe from "stripe";
 import { getStripe } from "@/server/payments/stripe";
 import {
-  recordStripeEvent,
-  fulfillPaidOrder,
-  markOrderFailed,
-  getOrderForWebhook,
+  failCheckoutFromWebhook,
+  fulfillPaidOrderFromWebhook,
 } from "../infrastructure/checkout-repo";
 
 /**
- * Traitement d'un webhook Stripe.
- * - Vérifie la signature sur le corps BRUT (source de vérité du paiement).
- * - Idempotence : enregistre `event.id` (contrainte UNIQUE) ; si déjà traité, ignore.
- * - Sur `checkout.session.completed` :
- *   - `payment_status !== "paid"` → NE PAS fulfiller. Pour les modes de paiement
- *     à notification différée (virement, SEPA, OXXO…), cet événement arrive à la
- *     SOUMISSION du formulaire, pas à l'arrivée de l'argent (registre H-3).
- *     Le fulfillment se fait sur `async_payment_succeeded`.
- *   - montant de la commande ≠ `amount_total` → NE PAS fulfiller (écart = fraude
- *     ou bug ; à investiguer manuellement).
- *   - sinon `fulfillPaidOrder` (transaction : paid + entitlements + panier).
- * - `async_payment_succeeded` : fulfillment (paiement différé finalement payé).
- * - `async_payment_failed` : commande → `failed` (uniquement si encore pending).
+ * A Stripe event is acknowledged only after its idempotency record and the
+ * resulting business mutation have committed in the same database transaction.
+ * Any mismatch or database error is deliberately thrown to the route: Stripe
+ * receives a 5xx and retries instead of Biblio silently losing the event.
  */
-
 export type WebhookResult =
   | { status: "duplicate" }
   | { status: "deferred_awaiting_payment"; orderId: string }
   | { status: "ignored_missing_metadata" }
-  | { status: "ignored_unknown_order"; orderId: string }
-  | { status: "rejected_amount_mismatch"; orderId: string }
   | { status: "already_settled"; orderId: string }
-  | { status: "fulfilled"; orderId: string; entitlementsCreated: number }
+  | { status: "fulfilled"; orderId: string }
   | { status: "marked_failed"; orderId: string }
   | { status: "unhandled" };
 
@@ -47,77 +33,90 @@ export function parseAndVerifyWebhook(
   try {
     return getStripe().webhooks.constructEvent(rawBody, signature, webhookSecret);
   } catch {
-    // signature invalide → rejet
     return null;
   }
 }
 
-/**
- * Vérifications communes avant fulfillment : métadonnées, paiement réellement
- * soldé, commande connue et montant identique.
- */
-async function fulfillFromSession(session: Stripe.Checkout.Session): Promise<WebhookResult> {
+function sessionMetadata(session: Stripe.Checkout.Session) {
   const orderId = session.metadata?.orderId;
   const userId = session.metadata?.userId;
-  if (!orderId || !userId) {
-    // metadata manquant → on ne peut pas délivrer, ne pas casser le webhook
-    return { status: "ignored_missing_metadata" };
-  }
+  return orderId && userId ? { orderId, userId } : null;
+}
 
-  // H-3 : `checkout.session.completed` ≠ « l'argent est arrivé ».
+function paymentIntentId(session: Stripe.Checkout.Session) {
+  if (typeof session.payment_intent === "string") return session.payment_intent;
+  return session.payment_intent?.id ?? null;
+}
+
+async function fulfillFromSession(
+  event: Stripe.Event,
+  session: Stripe.Checkout.Session,
+): Promise<WebhookResult> {
+  const metadata = sessionMetadata(session);
+  if (!metadata) return { status: "ignored_missing_metadata" };
+
+  // A completed Checkout can precede settlement for asynchronous methods.
   if (session.payment_status !== "paid") {
-    return { status: "deferred_awaiting_payment", orderId };
+    return { status: "deferred_awaiting_payment", orderId: metadata.orderId };
   }
 
-  const order = await getOrderForWebhook(orderId, userId);
-  if (!order) {
-    return { status: "ignored_unknown_order", orderId };
+  if (session.amount_total === null || !session.currency) {
+    throw new Error("Paid Stripe Checkout session has no amount or currency");
   }
 
-  if (order.totalInCents !== session.amount_total) {
-    console.error("[webhook] amount mismatch — fulfillment refusé", {
-      orderId,
-      orderTotalInCents: order.totalInCents,
-      stripeAmountTotal: session.amount_total,
-    });
-    return { status: "rejected_amount_mismatch", orderId };
-  }
+  const result = await fulfillPaidOrderFromWebhook({
+    eventId: event.id,
+    eventType: event.type,
+    orderId: metadata.orderId,
+    userId: metadata.userId,
+    stripeCheckoutSessionId: session.id,
+    stripePaymentIntentId: paymentIntentId(session),
+    totalInCents: session.amount_total,
+    currency: session.currency,
+  });
 
-  const created = await fulfillPaidOrder(userId, orderId);
-  if (created === null) {
-    // déjà payée/fulfilled/refundée → idempotence
-    return { status: "already_settled", orderId };
+  switch (result.kind) {
+    case "duplicate-event":
+      return { status: "duplicate" };
+    case "already-fulfilled":
+      return { status: "already_settled", orderId: result.orderId };
+    case "fulfilled":
+      return { status: "fulfilled", orderId: result.orderId };
   }
-  return { status: "fulfilled", orderId, entitlementsCreated: created };
+}
+
+async function failFromSession(
+  event: Stripe.Event,
+  session: Stripe.Checkout.Session,
+): Promise<WebhookResult> {
+  const metadata = sessionMetadata(session);
+  if (!metadata) return { status: "ignored_missing_metadata" };
+
+  const result = await failCheckoutFromWebhook({
+    eventId: event.id,
+    eventType: event.type,
+    orderId: metadata.orderId,
+    userId: metadata.userId,
+    stripeCheckoutSessionId: session.id,
+  });
+
+  if (result === "duplicate-event") return { status: "duplicate" };
+  if (result === "already-processed")
+    return { status: "already_settled", orderId: metadata.orderId };
+  return { status: "marked_failed", orderId: metadata.orderId };
 }
 
 export async function handleWebhook(event: Stripe.Event): Promise<WebhookResult> {
-  // Double idempotence : si l'évènement a déjà été traité, on ignore.
-  const isNewEvent = await recordStripeEvent(event.id, event.type);
-  if (!isNewEvent) {
-    return { status: "duplicate" };
-  }
-
-  // Les événements `async_payment_*` ne font pas partie de l'union typée du
-  // SDK Stripe : on les compare en string brut (les types du SDK ne sont pas
-  // exhaustifs côté réception). Noms EXACTS de la API Stripe — avec le préfixe
-  // `checkout.session.` : c'est l'identifiant réel que Stripe envoie.
+  // The async variants are strings because the SDK's received-event union is
+  // intentionally not exhaustive.
   const type: string = event.type;
-  if (type === "checkout.session.async_payment_failed") {
-    const session = event.data.object as Stripe.Checkout.Session;
-    const orderId = session.metadata?.orderId;
-    if (!orderId) {
-      return { status: "ignored_missing_metadata" };
-    }
-    const marked = await markOrderFailed(orderId);
-    return marked ? { status: "marked_failed", orderId } : { status: "already_settled", orderId };
-  }
-
   switch (type) {
     case "checkout.session.completed":
-    case "checkout.session.async_payment_succeeded": {
-      return fulfillFromSession(event.data.object as Stripe.Checkout.Session);
-    }
+    case "checkout.session.async_payment_succeeded":
+      return fulfillFromSession(event, event.data.object as Stripe.Checkout.Session);
+    case "checkout.session.async_payment_failed":
+    case "checkout.session.expired":
+      return failFromSession(event, event.data.object as Stripe.Checkout.Session);
     default:
       return { status: "unhandled" };
   }

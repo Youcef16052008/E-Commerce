@@ -7,6 +7,7 @@ import {
   setCartItemQuantity,
   removeCartItem,
   getPublishedProduct,
+  userOwnsProduct,
 } from "../infrastructure/cart-repo";
 
 /**
@@ -32,6 +33,10 @@ export async function addToCart(
   const product = await getPublishedProduct(productId);
   if (!product) {
     return { ok: false, error: { code: "PRODUCT_NOT_FOUND" } };
+  }
+
+  if (await userOwnsProduct(userId, productId)) {
+    return { ok: false, error: { code: "ALREADY_OWNED" } };
   }
 
   await upsertCartItem(userId, productId, quantity, MAX_QUANTITY);

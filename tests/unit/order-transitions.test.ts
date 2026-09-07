@@ -13,13 +13,9 @@ import type { OrderStatus } from "@/features/checkout/domain/checkout-types";
  */
 const ALL: OrderStatus[] = ["pending", "paid", "fulfilled", "failed", "refunded"];
 
-const ALLOWED: [OrderStatus, OrderStatus][] = [
-  ["pending", "paid"],
-  ["pending", "failed"],
-  ["paid", "fulfilled"],
-  ["paid", "refunded"],
-  ["fulfilled", "refunded"],
-];
+// Payment and refund states are Stripe-managed. The only human operational
+// transition is marking an already-paid order fulfilled.
+const ALLOWED: [OrderStatus, OrderStatus][] = [["paid", "fulfilled"]];
 
 describe("canTransition (L-1)", () => {
   it("autorise exactement les transitions du tableau", () => {

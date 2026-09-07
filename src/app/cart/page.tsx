@@ -60,7 +60,7 @@ export default async function CartPage() {
                   <span className="font-semibold">
                     {formatPrice(item.lineTotalInCents, item.currency)}
                   </span>
-                  <CartLineActions productId={item.productId} quantity={item.quantity} />
+                  <CartLineActions productId={item.productId} />
                 </div>
               </li>
             ))}

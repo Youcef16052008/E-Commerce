@@ -6,10 +6,7 @@ import Stripe from "stripe";
 import { db } from "@/server/db";
 import { user, orders, orderItems, products, entitlements, cartItems } from "@/server/db/schema";
 import { POST } from "@/app/api/webhooks/stripe/route";
-import {
-  createPendingOrder,
-  fulfillPaidOrder,
-} from "@/features/checkout/infrastructure/checkout-repo";
+import { createPendingOrder } from "@/features/checkout/infrastructure/checkout-repo";
 import { hasDatabase } from "./has-database";
 
 /**
@@ -42,7 +39,11 @@ function sessionEvent(id: string, type: string, session: Record<string, unknown>
     type,
     created: Math.floor(Date.now() / 1000),
     data: {
-      object: { id: "cs_test_local", object: "checkout.session", ...session },
+      object: {
+        id: `cs_test_${(session.metadata as { orderId?: string } | undefined)?.orderId ?? id}`,
+        object: "checkout.session",
+        ...session,
+      },
     },
   });
 }
@@ -123,17 +124,17 @@ describe.skipIf(!hasDatabase)("Fulfillment webhooks (intégration)", () => {
     const productId = await seedProduct(600);
     const { orderId } = await createPendingOrder(
       userId,
-      [{ productId, title: "Livre A", priceInCents: 600, quantity: 2, currency: "usd" }],
-      1200,
+      [{ productId, title: "Livre A", priceInCents: 600, quantity: 1, currency: "usd" }],
+      600,
       "usd",
     );
     // panier non vide avant fulfillment
-    await db.insert(cartItems).values({ userId, productId, quantity: 2 }).onConflictDoNothing();
+    await db.insert(cartItems).values({ userId, productId, quantity: 1 }).onConflictDoNothing();
 
     const payload = sessionEvent(`evt_sync_${orderId}`, "checkout.session.completed", {
       metadata: { orderId, userId },
       payment_status: "paid",
-      amount_total: 1200,
+      amount_total: 600,
       currency: "usd",
     });
     const res = await postWebhook(payload);
@@ -149,6 +150,44 @@ describe.skipIf(!hasDatabase)("Fulfillment webhooks (intégration)", () => {
       .from(cartItems)
       .where(eq(cartItems.userId, userId));
     expect(cart).toHaveLength(0);
+  });
+
+  it("H-4 : le fulfillment vide uniquement les licences effectivement payées", async () => {
+    const userId = await seedUser();
+    const paidProductId = await seedProduct(250);
+    const retainedProductId = await seedProduct(350);
+    const { orderId } = await createPendingOrder(
+      userId,
+      [
+        {
+          productId: paidProductId,
+          title: "Livre payé",
+          priceInCents: 250,
+          quantity: 1,
+          currency: "usd",
+        },
+      ],
+      250,
+      "usd",
+    );
+    await db.insert(cartItems).values([
+      { userId, productId: paidProductId, quantity: 1 },
+      { userId, productId: retainedProductId, quantity: 1 },
+    ]);
+
+    const payload = sessionEvent(`evt_targeted_cart_${orderId}`, "checkout.session.completed", {
+      metadata: { orderId, userId },
+      payment_status: "paid",
+      amount_total: 250,
+      currency: "usd",
+    });
+    expect((await postWebhook(payload)).status).toBe(200);
+
+    const remaining = await db
+      .select({ productId: cartItems.productId })
+      .from(cartItems)
+      .where(eq(cartItems.userId, userId));
+    expect(remaining).toEqual([{ productId: retainedProductId }]);
   });
 
   it("H-4 : le replay exact du même événement est idempotent (pas de double grant)", async () => {
@@ -229,12 +268,14 @@ describe.skipIf(!hasDatabase)("Fulfillment webhooks (intégration)", () => {
       amount_total: 1, // le client n'a PAS payé le total
       currency: "usd",
     });
-    expect((await postWebhook(payload)).status).toBe(200);
+    expect((await postWebhook(payload)).status).toBe(500);
+    // Le 5xx force Stripe à réessayer : l’événement et le fulfillment ont été
+    // annulés ensemble, sans droit accordé.
     expect((await getOrder(orderId))?.status).toBe("pending");
     expect(await countEntitlements(userId)).toBe(0);
   });
 
-  it("H-3b : async_payment_failed passe la commande en « failed » (et pas plus)", async () => {
+  it("H-3b : un échec asynchrone termine l’intention ; un succès contradictoire est retriable, pas délivré", async () => {
     const userId = await seedUser();
     const productId = await seedProduct(210);
     const { orderId } = await createPendingOrder(
@@ -258,7 +299,7 @@ describe.skipIf(!hasDatabase)("Fulfillment webhooks (intégration)", () => {
     expect((await getOrder(orderId))?.status).toBe("failed");
     expect(await countEntitlements(userId)).toBe(0);
 
-    // l'échec ne doit PAS écraser un paiement réalisé après coup
+    // Un événement de succès contradictoire ne doit jamais délivrer une commande échouée.
     const succeeded = sessionEvent(
       `evt_async_ok_${orderId}`,
       "checkout.session.async_payment_succeeded",
@@ -269,9 +310,9 @@ describe.skipIf(!hasDatabase)("Fulfillment webhooks (intégration)", () => {
         currency: "usd",
       },
     );
-    expect((await postWebhook(succeeded)).status).toBe(200);
-    expect((await getOrder(orderId))?.status).toBe("paid");
-    expect(await countEntitlements(userId)).toBe(1);
+    expect((await postWebhook(succeeded)).status).toBe(500);
+    expect((await getOrder(orderId))?.status).toBe("failed");
+    expect(await countEntitlements(userId)).toBe(0);
   });
 
   it("H-3b : async_payment_failed ne remplace jamais une commande payée", async () => {
@@ -308,7 +349,7 @@ describe.skipIf(!hasDatabase)("Fulfillment webhooks (intégration)", () => {
     expect(await countEntitlements(userId)).toBe(1);
   });
 
-  it("H-4 : fulfillPaidOrder sur commande déjà soldée → null, aucun changement", async () => {
+  it("H-4 : deux événements distincts pour la même session ne créent qu’un droit", async () => {
     const userId = await seedUser();
     const productId = await seedProduct(75);
     const { orderId } = await createPendingOrder(
@@ -317,13 +358,32 @@ describe.skipIf(!hasDatabase)("Fulfillment webhooks (intégration)", () => {
       75,
       "usd",
     );
+    const session = {
+      metadata: { orderId, userId },
+      payment_status: "paid",
+      amount_total: 75,
+      currency: "usd",
+    };
 
-    expect(await fulfillPaidOrder(userId, orderId)).toBe(1);
-    expect(await fulfillPaidOrder(userId, orderId)).toBeNull();
+    expect(
+      (
+        await postWebhook(
+          sessionEvent(`evt_paid_once_${orderId}`, "checkout.session.completed", session),
+        )
+      ).status,
+    ).toBe(200);
+    expect(
+      (
+        await postWebhook(
+          sessionEvent(`evt_paid_twice_${orderId}`, "checkout.session.completed", session),
+        )
+      ).status,
+    ).toBe(200);
+    expect((await getOrder(orderId))?.status).toBe("paid");
     expect(await countEntitlements(userId)).toBe(1);
   });
 
-  it("H-4 : fulfillPaidOrder sur commande refundée → null, pas d'entitlement", async () => {
+  it("H-4 : une commande déjà remboursée ne peut pas recevoir un droit par webhook", async () => {
     const userId = await seedUser();
     const productId = await seedProduct(125);
     const { orderId } = await createPendingOrder(
@@ -332,11 +392,16 @@ describe.skipIf(!hasDatabase)("Fulfillment webhooks (intégration)", () => {
       125,
       "usd",
     );
-
     await db.update(orders).set({ status: "refunded" }).where(eq(orders.id, orderId));
-    expect(await fulfillPaidOrder(userId, orderId)).toBeNull();
-    const order = await getOrder(orderId);
-    expect(order?.status).toBe("refunded");
+
+    const payload = sessionEvent(`evt_refunded_${orderId}`, "checkout.session.completed", {
+      metadata: { orderId, userId },
+      payment_status: "paid",
+      amount_total: 125,
+      currency: "usd",
+    });
+    expect((await postWebhook(payload)).status).toBe(500);
+    expect((await getOrder(orderId))?.status).toBe("refunded");
     expect(await countEntitlements(userId)).toBe(0);
   });
 
@@ -358,7 +423,9 @@ describe.skipIf(!hasDatabase)("Fulfillment webhooks (intégration)", () => {
       amount_total: 80,
       currency: "usd",
     });
-    expect((await postWebhook(payload)).status).toBe(200);
+    // Les métadonnées incohérentes sont une anomalie à re-livrer/investiguer,
+    // jamais un événement à acquitter silencieusement.
+    expect((await postWebhook(payload)).status).toBe(500);
     expect((await getOrder(orderId))?.status).toBe("pending");
     expect(await countEntitlements(userId)).toBe(0);
     expect(await countEntitlements(otherUserId)).toBe(0);
@@ -393,7 +460,7 @@ describe.skipIf(!hasDatabase)("Fulfillment webhooks (intégration)", () => {
     expect((await getOrder(orderId))?.status).toBe("pending");
   });
 
-  it("H-2 : chaque checkout crée une nouvelle commande, les anciennes pending sont purgées", async () => {
+  it("H-2 : une nouvelle intention ne supprime jamais une ancienne commande pending", async () => {
     const userId = await seedUser();
     const p1 = await seedProduct(500);
     const p2 = await seedProduct(700);
@@ -412,10 +479,11 @@ describe.skipIf(!hasDatabase)("Fulfillment webhooks (intégration)", () => {
     );
 
     expect(a.orderId).not.toBe(b.orderId);
-    // l'ancienne pending A a été supprimée (avec ses items)
-    expect(await getOrder(a.orderId)).toBeNull();
+    // L’ancienne intention reste traçable et potentiellement payable.
+    expect((await getOrder(a.orderId))?.status).toBe("pending");
     const itemsA = await db.select().from(orderItems).where(eq(orderItems.orderId, a.orderId));
-    expect(itemsA).toHaveLength(0);
+    expect(itemsA).toHaveLength(1);
+    expect(itemsA[0].productId).toBe(p1);
     // la nouvelle B existe avec SON item
     expect((await getOrder(b.orderId))?.status).toBe("pending");
     const itemsB = await db.select().from(orderItems).where(eq(orderItems.orderId, b.orderId));
@@ -443,7 +511,7 @@ describe.skipIf(!hasDatabase)("Fulfillment webhooks (intégration)", () => {
     );
 
     expect(a.orderId).not.toBe(b.orderId);
-    expect(await getOrder(a.orderId)).toBeNull();
+    expect((await getOrder(a.orderId))?.status).toBe("pending");
     const itemsB = await db.select().from(orderItems).where(eq(orderItems.orderId, b.orderId));
     expect(itemsB).toHaveLength(1);
     expect(itemsB[0].productId).toBe(p2);
@@ -460,7 +528,13 @@ describe.skipIf(!hasDatabase)("Fulfillment webhooks (intégration)", () => {
       300,
       "usd",
     );
-    expect(await fulfillPaidOrder(userId, a.orderId)).toBe(1);
+    const payment = sessionEvent(`evt_paid_preserved_${a.orderId}`, "checkout.session.completed", {
+      metadata: { orderId: a.orderId, userId },
+      payment_status: "paid",
+      amount_total: 300,
+      currency: "usd",
+    });
+    expect((await postWebhook(payment)).status).toBe(200);
 
     const b = await createPendingOrder(
       userId,
