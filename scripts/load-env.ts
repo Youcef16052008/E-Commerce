@@ -17,7 +17,13 @@ import path from "node:path";
     if (!m) continue;
     const key = m[1];
     if (process.env[key] === undefined) {
-      process.env[key] = m[2].replace(/^["']|["']$/g, "");
+      let value = m[2];
+      const commentIndex = value.search(/\s+#/);
+      if (commentIndex !== -1) {
+        value = value.substring(0, commentIndex);
+      }
+      value = value.replace(/^["']|["']$/g, "").trim();
+      process.env[key] = value;
     }
   }
 })();
