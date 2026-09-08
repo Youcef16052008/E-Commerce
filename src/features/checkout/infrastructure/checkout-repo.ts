@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/server/db";
 import {
   orders,
@@ -7,6 +7,7 @@ import {
   cartItems,
   stripeEvents,
   products,
+  refunds,
 } from "@/server/db/schema";
 import type { OrderStatus } from "../domain/checkout-types";
 
@@ -162,4 +163,108 @@ export async function getCartForCheckout(userId: string) {
     .innerJoin(products, eq(cartItems.productId, products.id))
     .where(and(eq(cartItems.userId, userId), eq(products.published, true)));
   return rows;
+}
+
+/**
+ * Enregistre un remboursement Stripe de façon idempotente.
+ * - Crée la ligne `refunds` si `stripe_refund_id` inconnu.
+ * - Met à jour la commande vers `refunded` si totalement remboursée.
+ *
+ * Retourne `true` si c'est un nouveau remboursement enregistré.
+ */
+export async function recordRefund({
+  orderId,
+  stripeRefundId,
+  amountInCents,
+  currency,
+  status,
+  reason,
+}: {
+  orderId: string;
+  stripeRefundId: string;
+  amountInCents: number;
+  currency: string;
+  status: string;
+  reason?: string;
+}): Promise<boolean> {
+  const inserted = await db
+    .insert(refunds)
+    .values({
+      id: crypto.randomUUID().replace(/-/g, ""),
+      orderId,
+      stripeRefundId,
+      amountInCents,
+      currency,
+      status,
+      reason,
+    })
+    .onConflictDoNothing({ target: refunds.stripeRefundId })
+    .returning({ id: refunds.id });
+
+  if (inserted.length === 0) {
+    return false;
+  }
+
+  const order = await db
+    .select({ totalInCents: orders.totalInCents, status: orders.status })
+    .from(orders)
+    .where(eq(orders.id, orderId))
+    .limit(1);
+
+  if (order[0] && order[0].status !== "refunded") {
+    const refundsSum = await db
+      .select({ sum: sql<number>`COALESCE(SUM(${refunds.amountInCents}), 0)` })
+      .from(refunds)
+      .where(eq(refunds.orderId, orderId));
+
+    const totalRefunded = refundsSum[0]?.sum ?? 0;
+    const now = new Date();
+    if (totalRefunded >= order[0].totalInCents) {
+      await db
+        .update(orders)
+        .set({ status: "refunded" as OrderStatus, stripeRefundId, refundAmountInCents: totalRefunded, refundedAt: now })
+        .where(eq(orders.id, orderId));
+    } else {
+      await db
+        .update(orders)
+        .set({ stripeRefundId, refundAmountInCents: totalRefunded, refundedAt: now })
+        .where(eq(orders.id, orderId));
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Réconciliation manuelle : compare l'état Stripe d'une commande avec la BDD.
+ * Retourne un rapport simple (à logger / afficher en admin).
+ */
+export async function reconcileOrderWithStripe(orderId: string) {
+  const [order] = await db
+    .select()
+    .from(orders)
+    .where(eq(orders.id, orderId))
+    .limit(1);
+
+  if (!order) {
+    return { ok: false as const, error: "ORDER_NOT_FOUND" };
+  }
+
+  const orderRefunds = await db.select().from(refunds).where(eq(refunds.orderId, orderId));
+  const totalRefunded = orderRefunds.reduce((s, r) => s + r.amountInCents, 0);
+
+  return {
+    ok: true as const,
+    orderId: order.id,
+    dbStatus: order.status,
+    totalInCents: order.totalInCents,
+    totalRefunded,
+    refunds: orderRefunds.map((r) => ({
+      stripeRefundId: r.stripeRefundId,
+      amountInCents: r.amountInCents,
+      status: r.status,
+      reason: r.reason,
+      createdAt: r.createdAt,
+    })),
+  };
 }

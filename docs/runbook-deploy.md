@@ -113,13 +113,17 @@
    → la CLI affiche `Webhook signing secret: whsec_…` → copier dans Vercel
    (`STRIPE_WEBHOOK_SECRET`).
 
-3. Dashboard Stripe (test) → **Developers → Webhooks → Add endpoint** :
-   - URL : `https://<slug>.vercel.app/api/webhooks/stripe`
-   - Événements (les 3 consommés par l'app) :
-     - **`checkout.session.completed`**
-     - **`checkout.session.async_payment_succeeded`** (paiements à notification
-       différée — virement, SEPA… : c'est lui qui déclenche la livraison)
-     - **`checkout.session.async_payment_failed`** (commande → `failed`)
+ 3. Dashboard Stripe (test) → **Developers → Webhooks → Add endpoint** :
+    - URL : `https://<slug>.vercel.app/api/webhooks/stripe`
+    - Événements (les 7 consommés par l'app) :
+      - **`checkout.session.completed`**
+      - **`checkout.session.async_payment_succeeded`** (paiements à notification
+        différée — virement, SEPA… : c'est lui qui déclenche la livraison)
+      - **`checkout.session.async_payment_failed`** (commande → `failed`)
+      - **`charge.refunded`** (remboursement total/partiel → statut `refunded`)
+      - **`charge.dispute.created`** (litige → statut `disputed`)
+      - **`charge.dispute.updated`** (mise à jour du litige)
+      - **`charge.dispute.closed`** (clôture du litige)
 4. Le webhook lit le **corps brut** (`request.text()` avant
    `stripe.webhooks.constructEvent`) — signature vérifiée avant tout
    traitement ; le traitement est **attendu avant la réponse** (500 en cas

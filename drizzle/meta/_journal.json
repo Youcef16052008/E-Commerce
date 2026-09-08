@@ -29,6 +29,27 @@
       "when": 1788204403974,
       "tag": "0003_order-quantity",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1788204500000,
+      "tag": "0004_add_order_refund_tracking",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1788204600000,
+      "tag": "0005_create_refunds_table",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788204700000,
+      "tag": "0006_create_stripe_sync_log",
+      "breakpoints": true
     }
   ]
 }

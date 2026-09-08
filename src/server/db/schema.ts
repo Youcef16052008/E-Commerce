@@ -80,14 +80,17 @@ export const orders = pgTable(
       .notNull()
       .default("pending"),
     totalInCents: integer("total_in_cents").notNull(),
-    // Monnaie unique de la boutique : USD (Stripe Checkout mono-devise).
     currency: text("currency").notNull().default("usd"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     paidAt: timestamp("paid_at", { withTimezone: true }),
+    stripeRefundId: text("stripe_refund_id"),
+    refundedAt: timestamp("refunded_at", { withTimezone: true }),
+    refundAmountInCents: integer("refund_amount_in_cents"),
   },
   (table) => [
     index("orders_user_idx").on(table.userId),
     index("orders_status_idx").on(table.status),
+    index("orders_stripe_refund_id_idx").on(table.stripeRefundId),
   ],
 );
 
@@ -143,8 +146,46 @@ export const stripeEvents = pgTable(
   (table) => [uniqueIndex("stripe_events_id_idx").on(table.stripeEventId)],
 );
 
+export const refunds = pgTable(
+  "refunds",
+  {
+    id: text("id").primaryKey(),
+    orderId: text("order_id")
+      .notNull()
+      .references(() => orders.id, { onDelete: "restrict" }),
+    stripeRefundId: text("stripe_refund_id").notNull().unique(),
+    amountInCents: integer("amount_in_cents").notNull(),
+    currency: text("currency").notNull().default("usd"),
+    status: text("status").notNull().default("succeeded"),
+    reason: text("reason"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("refunds_order_idx").on(table.orderId),
+    index("refunds_stripe_refund_id_idx").on(table.stripeRefundId),
+  ],
+);
+
+export const stripeSyncLog = pgTable(
+  "stripe_sync_log",
+  {
+    id: text("id").primaryKey(),
+    eventType: text("event_type").notNull(),
+    eventId: text("event_id").notNull(),
+    syncedAt: timestamp("synced_at", { withTimezone: true }).notNull().defaultNow(),
+    status: text("status").notNull().default("success"),
+    details: text("details"),
+  },
+  (table) => [
+    uniqueIndex("stripe_sync_log_event_id_idx").on(table.eventId),
+    index("stripe_sync_log_event_type_idx").on(table.eventType),
+  ],
+);
+
 export { user, session, account, verification } from "./auth-schema";
 export type Product = typeof products.$inferSelect;
 export type Order = typeof orders.$inferSelect;
 export type OrderItem = typeof orderItems.$inferSelect;
 export type Entitlement = typeof entitlements.$inferSelect;
+export type Refund = typeof refunds.$inferSelect;
+export type StripeSyncLog = typeof stripeSyncLog.$inferSelect;

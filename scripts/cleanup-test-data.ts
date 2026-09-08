@@ -15,7 +15,7 @@
 import "./load-env";
 import { eq, inArray, like, or } from "drizzle-orm";
 import { db } from "../src/server/db";
-import { user, orders, orderItems, products, cartItems } from "../src/server/db/schema";
+import { user, orders, orderItems, products, cartItems, refunds } from "../src/server/db/schema";
 
 async function main() {
   const testUsers = await db
@@ -26,14 +26,13 @@ async function main() {
   let ordersDeleted = 0;
   if (testUsers.length > 0) {
     const userIds = testUsers.map((u) => u.id);
-    // orders en premier (order_items + entitlements tombent en cascade),
-    // puis les paniers, puis les users.
     const ordersOfTest = await db
       .select({ id: orders.id })
       .from(orders)
       .where(inArray(orders.userId, userIds));
     if (ordersOfTest.length > 0) {
       const orderIds = ordersOfTest.map((o) => o.id);
+      await db.delete(refunds).where(inArray(refunds.orderId, orderIds)).catch(() => undefined);
       await db.delete(orderItems).where(inArray(orderItems.orderId, orderIds));
       await db.delete(orders).where(inArray(orders.id, orderIds));
       ordersDeleted = orderIds.length;

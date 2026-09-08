@@ -1,10 +1,15 @@
 import type Stripe from "stripe";
 import { getStripe } from "@/server/payments/stripe";
+import { and, eq, inArray } from "drizzle-orm";
+import { db } from "@/server/db";
+import { orders } from "@/server/db/schema";
+import type { OrderStatus } from "../domain/checkout-types";
 import {
   recordStripeEvent,
   fulfillPaidOrder,
   markOrderFailed,
   getOrderForWebhook,
+  recordRefund,
 } from "../infrastructure/checkout-repo";
 
 /**
@@ -32,6 +37,8 @@ export type WebhookResult =
   | { status: "already_settled"; orderId: string }
   | { status: "fulfilled"; orderId: string; entitlementsCreated: number }
   | { status: "marked_failed"; orderId: string }
+  | { status: "refunded"; orderId: string; refundId: string }
+  | { status: "disputed"; orderId: string }
   | { status: "unhandled" };
 
 /** Vérifie la signature et renvoie l'évènement parsé. Retourne null si invalide. */
@@ -111,6 +118,44 @@ export async function handleWebhook(event: Stripe.Event): Promise<WebhookResult>
     }
     const marked = await markOrderFailed(orderId);
     return marked ? { status: "marked_failed", orderId } : { status: "already_settled", orderId };
+  }
+
+  if (type === "charge.refunded") {
+    const charge = event.data.object as Stripe.Charge;
+    const orderId = charge.metadata?.orderId;
+    if (!orderId) {
+      return { status: "ignored_missing_metadata" };
+    }
+    const refunds = (charge.refunds?.data ?? []).filter((r): r is Stripe.Refund => r !== null && r !== undefined && r.id !== null);
+    for (const refund of refunds) {
+      if (!refund.id) continue;
+      const created = await recordRefund({
+        orderId,
+        stripeRefundId: refund.id as string,
+        amountInCents: refund.amount,
+        currency: refund.currency,
+        status: refund.status as string,
+        reason: refund.reason ?? undefined,
+      });
+      if (created) {
+        return { status: "refunded", orderId, refundId: refund.id as string };
+      }
+    }
+    return { status: "already_settled", orderId };
+  }
+
+  if (type === "charge.dispute.created") {
+    const charge = event.data.object as Stripe.Charge;
+    const orderId = charge.metadata?.orderId;
+    if (!orderId) {
+      return { status: "ignored_missing_metadata" };
+    }
+    const updated = await db
+      .update(orders)
+      .set({ status: "disputed" as OrderStatus })
+      .where(and(eq(orders.id, orderId), inArray(orders.status, ["paid", "fulfilled"])))
+      .returning({ id: orders.id });
+    return updated.length > 0 ? { status: "disputed", orderId } : { status: "already_settled", orderId };
   }
 
   switch (type) {
