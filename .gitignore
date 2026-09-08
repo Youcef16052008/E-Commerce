@@ -34,6 +34,10 @@ yarn-error.log*
 .env*
 !.env.example
 
+# Local MCP credentials/configuration (the secret-free template is versioned)
+.mcp.json
+
+
 # vercel
 .vercel
 

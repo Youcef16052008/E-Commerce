@@ -105,8 +105,8 @@ describe("adminProductUpdateSchema", () => {
 });
 
 describe("adminOrderStatusSchema", () => {
-  it("accepte les 5 statuts", () => {
-    for (const status of ["pending", "paid", "fulfilled", "failed", "refunded"]) {
+  it("accepte les 6 statuts", () => {
+    for (const status of ["pending", "paid", "fulfilled", "refund_pending", "failed", "refunded"]) {
       expect(adminOrderStatusSchema.safeParse({ status }).success).toBe(true);
     }
   });

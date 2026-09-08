@@ -8,6 +8,7 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   pending: "En attente de paiement",
   paid: "Payée",
   fulfilled: "Livrée",
+  refund_pending: "Remboursement en cours",
   failed: "Échec du paiement",
   refunded: "Remboursée",
 };
@@ -16,6 +17,7 @@ export const ORDER_STATUS_STYLES: Record<OrderStatus, string> = {
   pending: "border-amber-200 bg-amber-50 text-amber-800",
   paid: "border-emerald-200 bg-emerald-50 text-emerald-800",
   fulfilled: "border-sky-200 bg-sky-50 text-sky-800",
+  refund_pending: "border-violet-200 bg-violet-50 text-violet-800",
   failed: "border-red-200 bg-red-50 text-red-800",
   refunded: "border-neutral-200 bg-neutral-100 text-neutral-600",
 };

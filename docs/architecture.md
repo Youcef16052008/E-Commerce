@@ -90,14 +90,17 @@ erDiagram
   ORDER ||--o{ ORDER_ITEM : contient
   ORDER ||--o{ ENTITLEMENT : cree
   PRODUCT ||--o{ ENTITLEMENT : donne
+  ORDER ||--o| REFUND : demande
+  USER ||--o{ REFUND : demande
   STRIPE_EVENT ||--o{ ORDER : traite
 
   USER { text id PK; text email UK; text name; text passwordHash; text role "customer|admin"; timestamp createdAt }
   PRODUCT { text id PK; text slug UK; text title; text description; text author; text genre; text language; text format "epub|pdf"; text coverUrl; text fileUrl; int priceInCents; boolean published; timestamp createdAt; timestamp updatedAt }
   CART_ITEM { text userId FK; text productId FK; int quantity; pk(userId, productId) }
-  ORDER { text id PK; text userId FK; text status "pending|paid|fulfilled|failed|refunded"; int totalInCents; text currency; timestamp createdAt; timestamp paidAt }
+  ORDER { text id PK; text userId FK; text status "pending|paid|fulfilled|refund_pending|failed|refunded"; int totalInCents; text currency; timestamp createdAt; timestamp paidAt }
   ORDER_ITEM { text orderId FK; text productId FK; text titleSnapshot; int priceInCents; text currency; pk(orderId, productId) }
   ENTITLEMENT { text id PK; text userId FK; text productId FK; text orderId FK; timestamp createdAt; timestamp expiresAt "null" }
+  REFUND { text id PK; text orderId UK FK; text requestedByUserId FK; text status "pending|succeeded|failed"; int amountInCents; text currency; text stripeRefundId UK; timestamp createdAt; timestamp completedAt }
   STRIPE_EVENT { text id PK; text stripeEventId UK; text type; timestamp processedAt }
 ```
 
@@ -116,15 +119,19 @@ erDiagram
 
 ### Panier (session requise)
 
-- `GET /api/cart`, `POST /api/cart` {productId, qty}, `PATCH /api/cart/[productId]`, `DELETE /api/cart/[productId]`.
+- `GET /api/cart`, `POST /api/cart` `{ productId, quantity: 1 }`, `PATCH /api/cart/[productId]`, `DELETE /api/cart/[productId]`. Une ligne représente une licence personnelle unique ; les quantités supérieures à 1 et les ouvrages déjà détenus sont refusés.
 
 ### Checkout (session requise)
 
-- `POST /api/checkout` → crée un Stripe Checkout Session (prix relu serveur,
-  boutique mono-devises : panier multi-devises → `MIXED_CURRENCY` 400),
-  renvoie `url`. Erreurs : `EMPTY_CART`/`MIXED_CURRENCY` (400), `PAYMENT_ERROR` (502).
+- `POST /api/checkout` → crée ou reprend une intention Stripe Checkout persistée (prix relu serveur, fingerprint déterministe + clé d'idempotence liée à l'ordre). Boutique mono-devises : panier multi-devises → `MIXED_CURRENCY` 400 ; licences déjà détenues ou intention non payable → 409 ; erreur Stripe → 502.
 - `POST /api/webhooks/stripe` → corps brut, vérif signature, **traitement avant
-  réponse** (500 sur erreur → Stripe réessaie), idempotent, livraison atomique.
+  réponse** (500 sur erreur → Stripe réessaie). L'enregistrement de l'événement,
+  le passage à `paid`, les entitlements et la suppression des seules lignes de
+  panier payées sont atomiques. Les événements async et l'expiration de Checkout
+  sont également traités. Les événements `refund.created`, `refund.updated` et
+  `refund.failed` sont également vérifiés : seul leur succès confirmé passe la
+  commande à `refunded` et révoque l'entitlement, sauf si une autre commande
+  encaissée du même client couvre encore le même ouvrage.
 
 ### Bibliothèque (session requise)
 
@@ -135,10 +142,12 @@ erDiagram
 
 - `GET/POST /api/admin/products`, `PATCH/DELETE /api/admin/products/[id]`.
 - `GET /api/admin/orders`, `GET /api/admin/stats`.
-- `PATCH /api/admin/orders/[id]/status` → changement de statut contrôlé par la
-  **machine à états** (`features/orders/domain/order-transitions.ts`) : toute
-  transition non autorisée → 409 `INVALID_STATE`. `refunded` révoque les
-  entitlements de la commande (même transaction).
+- `GET /api/admin/payments/exceptions` et `/admin/payments` → file de réconciliation interne en lecture seule : références Stripe manquantes, entitlement absent, Checkout expiré et demandes de remboursement non confirmées.
+- `POST /api/admin/orders/[id]/refund` → réserve un remboursement **intégral** (`refund_pending`) puis appelle Stripe avec une clé d'idempotence durable. Réponse `202` = demande en attente, jamais remboursement confirmé. La confirmation Stripe signée est la seule opération qui révoque l'accès lorsqu'aucun autre achat encaissé du client ne couvre le même ouvrage.
+- `PATCH /api/admin/orders/[id]/status` → seule la transition opérationnelle
+  `paid → fulfilled` est manuelle. Les statuts de paiement, d'échec et de
+  remboursement sont réservés aux workflows/webhooks Stripe ; toute tentative
+  manuelle reçoit 409 `PAYMENT_STATUS_MANAGED_BY_STRIPE`.
 
 ## 5. Authentification & autorisation
 
@@ -152,6 +161,7 @@ erDiagram
 - **Webhooks Stripe** : corps brut + `stripe.webhooks.constructEvent` (signature).
 - **Idempotence 2 couches** : `Idempotency-Key` à la création de session + table `stripe_events`
   avec `stripeEventId UNIQUE` (ON CONFLICT DO NOTHING) côté réception.
+- **Remboursement intégral durable** : une seule demande par commande (`refunds.order_id UNIQUE`) est réservée avant l'appel Stripe. La clé d'idempotence Stripe est liée à son UUID. La commande reste `refund_pending` en cas de timeout incertain : elle n'est jamais revenue localement à `paid`, et l'accès n'est jamais révoqué sans événement Stripe signé, montant/devise/Payment Intent/métadonnées vérifiés. Une autre commande encore encaissée pour le même ouvrage conserve l'accès et reçoit le lien d'audit de l'entitlement.
 - Prix toujours relu depuis la BDD, jamais depuis le client.
 - Validation **Zod** à toutes les frontières (publiques et privées).
 - Erreurs typées ; aucun détail interne exposé (message générique en prod).
@@ -161,8 +171,8 @@ erDiagram
   TLS), `Permissions-Policy` (caméra/mic/géo/paiement désactivés),
   `Cross-Origin-Resource-Policy: same-origin`.
 - Cookies (Better Auth) : `httpOnly`, `sameSite=lax`, `secure` en production (TLS).
-- CSRF : Server Actions de Next (liées aux formulaires + SameSite), pas de token manuel.
-- Secrets : uniquement côté serveur ; `.env.example` fourni ; `.env*` jamais commité.
+- CSRF : Server Actions de Next (liées aux formulaires + SameSite), pas de token manuel. La route financière de remboursement refuse en plus tout `Origin` navigateur différent de l'origine de la requête.
+- Secrets : uniquement côté serveur ; `.env.example` fourni ; `.env*` jamais commité. La fabrique Stripe refuse explicitement les clés `sk_live_`/`rk_live_` : la phase 1 est techniquement limitée au mode test.
 - Rate limiting sur auth (plugin Better Auth) et download.
 
 ## 7. Cache & fraîcheur des données

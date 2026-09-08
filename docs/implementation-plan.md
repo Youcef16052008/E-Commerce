@@ -79,7 +79,7 @@
   `0003_order-quantity`) ; devises `orders`/`order_items` unifiées **USD**.
 - **Tests** : unit — libellés/styles de statut (5 tests) ; intégration — liste avec
   articles/quantité/total + isolation entre utilisateurs (2 tests, base réelle).
-- **Critères** : statuts cohérents avec le paiement (pending → paid → fulfilled…) ;
+- **Critères** : statuts cohérents avec le paiement et remboursement (pending → paid → fulfilled ; refund_pending → refunded/retour à l’état antérieur par webhook Stripe) ;
   totaux relus en base (jamais recalculés côté client) ; aucune fuite entre comptes.
 
 ## Slice 7 — Admin (P0/P1) ✅ Done
@@ -97,7 +97,7 @@
   collision slug → 409 ; suppression refusée (409 `PRODUCT_REFERENCED`) si le
   produit apparaît dans `order_items` (FK RESTRICT).
 - **Commandes** : liste globale avec email/nom client ; changement de statut
-  (pending|paid|fulfilled|failed|refunded) avec libellés FR.
+  (pending|paid|fulfilled|refund_pending|failed|refunded) avec libellés FR ; l’admin ne choisit manuellement que `paid → fulfilled`, et demande un remboursement Stripe intégral séparément.
 - **Tests** : unit — schemas + garde admin ; intégration — CRUD, slug dupliqué,
   produit référencé, commandes + statut, 404.
 - **Critères** : routes protégées côté serveur ; interface admin dédiée ; hors
@@ -107,16 +107,16 @@
 
 - **User story** : U9 — ventes, produits, commandes.
 - **Domaine** (`features/admin/domain/admin-stats-types.ts`) : DTO `AdminStats`
-  (produits total/publiés/brouillons, commandes total + `ordersByStatus` 5
+  (produits total/publiés/brouillons, commandes total + `ordersByStatus` 6
   statuts, `revenueInCents` + `currency: "usd"` + `paidOrdersCount`,
   `customersTotal`, `recentOrders` ≤ 5, `topProducts` ≤ 5) + règles pures
-  testées : `REVENUE_ORDER_STATUSES = ["paid","fulfilled"]` (le revenu ne
-  compte **jamais** pending/failed/refunded), `buildOrdersByStatus` (statuts
+  testées : `REVENUE_ORDER_STATUSES = ["paid","fulfilled","refund_pending"]` (le revenu ne
+  compte **jamais** pending/failed/refunded ; un remboursement ne réduit le revenu qu’après confirmation Stripe), `buildOrdersByStatus` (statuts
   absents → 0).
 - **Infra** (`admin-stats-repo.ts`) : agrégations SQL Drizzle uniquement
   (`count`/`sum`/`groupBy`/`FILTER`), 6 requêtes exécutées en **parallèle**
   (Promise.all) — zéro N+1, zéro chiffre hardcodé ; revenu via
-  `coalesce(sum(total_in_cents),0)` filtré `status IN (paid, fulfilled)` ;
+  `coalesce(sum(total_in_cents),0)` filtré `status IN (paid, fulfilled, refund_pending)` ;
   top produits sur `order_items` join `orders` (statuts revenus), titre repris
   du `title_snapshot` ; clients = `role='customer'`.
 - **Application** (`admin-stats-service.ts`) : `viewAdminStats()` → DTO de vue
@@ -130,8 +130,8 @@
 - **Tests** : unit — `tests/unit/admin-stats.test.ts` (11 : règles revenu,
   répartition par statut, garde 401/403/200 du route handler) ; intégration —
   `tests/integration/admin-stats.test.ts` (7, `skipIf(!hasDatabase)` : seed
-  pending+paid+fulfilled+failed+refunded → méthode en écarts before/after,
-  revenu = paid+fulfilled uniquement, recentOrders/topProducts, cleanup).
+  pending+paid+fulfilled+refund_pending+failed+refunded → méthode en écarts before/after,
+  revenu = paid+fulfilled+refund_pending jusqu’à la confirmation Stripe, recentOrders/topProducts, cleanup).
 
 ## Slice 9 — Qualité & accessibilité (P1) ✅ Done
 

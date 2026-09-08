@@ -7,7 +7,9 @@ import {
   primaryKey,
   uniqueIndex,
   index,
+  check,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { user } from "./auth-schema";
 
 /**
@@ -48,7 +50,9 @@ export const products = pgTable(
   (table) => [
     index("products_category_idx").on(table.genre),
     index("products_title_idx").on(table.title),
-    index("products_source_idx").on(table.source, table.sourceId),
+    uniqueIndex("products_source_source_id_idx").on(table.source, table.sourceId),
+    check("products_price_non_negative", sql`${table.priceInCents} >= 0`),
+    check("products_currency_usd", sql`lower(${table.currency}) = 'usd'`),
   ],
 );
 
@@ -61,10 +65,15 @@ export const cartItems = pgTable(
     productId: text("product_id")
       .notNull()
       .references(() => products.id, { onDelete: "cascade" }),
+    // A cart row represents one non-transferable personal licence, never a
+    // multi-unit physical inventory reservation.
     quantity: integer("quantity").notNull().default(1),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [primaryKey({ columns: [table.userId, table.productId] })],
+  (table) => [
+    primaryKey({ columns: [table.userId, table.productId] }),
+    check("cart_items_personal_license_quantity", sql`${table.quantity} = 1`),
+  ],
 );
 
 export const orders = pgTable(
@@ -75,19 +84,34 @@ export const orders = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: "restrict" }),
     status: text("status", {
-      enum: ["pending", "paid", "fulfilled", "failed", "refunded"],
+      enum: ["pending", "paid", "fulfilled", "refund_pending", "failed", "refunded"],
     })
       .notNull()
       .default("pending"),
     totalInCents: integer("total_in_cents").notNull(),
     // Monnaie unique de la boutique : USD (Stripe Checkout mono-devise).
     currency: text("currency").notNull().default("usd"),
+    /** Stable fingerprint of a pending basket. It makes repeated clicks and
+     * concurrent requests converge on one Stripe Checkout intent. */
+    checkoutKey: text("checkout_key"),
+    stripeCheckoutSessionId: text("stripe_checkout_session_id"),
+    stripePaymentIntentId: text("stripe_payment_intent_id"),
+    checkoutExpiresAt: timestamp("checkout_expires_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     paidAt: timestamp("paid_at", { withTimezone: true }),
   },
   (table) => [
     index("orders_user_idx").on(table.userId),
     index("orders_status_idx").on(table.status),
+    uniqueIndex("orders_checkout_key_idx").on(table.checkoutKey),
+    uniqueIndex("orders_stripe_checkout_session_idx").on(table.stripeCheckoutSessionId),
+    uniqueIndex("orders_stripe_payment_intent_idx").on(table.stripePaymentIntentId),
+    check("orders_total_non_negative", sql`${table.totalInCents} >= 0`),
+    check("orders_currency_usd", sql`lower(${table.currency}) = 'usd'`),
+    check(
+      "orders_status_valid",
+      sql`${table.status} in ('pending', 'paid', 'fulfilled', 'refund_pending', 'failed', 'refunded')`,
+    ),
   ],
 );
 
@@ -102,12 +126,18 @@ export const orderItems = pgTable(
       .references(() => products.id, { onDelete: "restrict" }),
     titleSnapshot: text("title_snapshot").notNull(),
     priceInCents: integer("price_in_cents").notNull(),
-    // Quantité achetée (snapshot — le panier autorise 1..10).
+    // Snapshot historique : les nouveaux paniers valent toujours 1, mais les
+    // anciennes commandes multi-unités restent lisibles.
     quantity: integer("quantity").notNull().default(1),
     currency: text("currency").notNull().default("usd"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [primaryKey({ columns: [table.orderId, table.productId] })],
+  (table) => [
+    primaryKey({ columns: [table.orderId, table.productId] }),
+    check("order_items_price_non_negative", sql`${table.priceInCents} >= 0`),
+    check("order_items_quantity_positive", sql`${table.quantity} >= 1`),
+    check("order_items_currency_usd", sql`lower(${table.currency}) = 'usd'`),
+  ],
 );
 
 export const entitlements = pgTable(
@@ -132,19 +162,53 @@ export const entitlements = pgTable(
   ],
 );
 
-export const stripeEvents = pgTable(
-  "stripe_events",
+/**
+ * One full-order Stripe refund request. `pending` is intentionally durable until
+ * Stripe confirms success or failure with a signed webhook.
+ */
+export const refunds = pgTable(
+  "refunds",
   {
     id: text("id").primaryKey(),
-    stripeEventId: text("stripe_event_id").notNull().unique(),
-    type: text("type").notNull(),
-    processedAt: timestamp("processed_at", { withTimezone: true }).notNull().defaultNow(),
+    orderId: text("order_id")
+      .notNull()
+      .references(() => orders.id, { onDelete: "cascade" }),
+    requestedByUserId: text("requested_by_user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "restrict" }),
+    previousOrderStatus: text("previous_order_status", { enum: ["paid", "fulfilled"] }).notNull(),
+    status: text("status", { enum: ["pending", "succeeded", "failed"] })
+      .notNull()
+      .default("pending"),
+    amountInCents: integer("amount_in_cents").notNull(),
+    currency: text("currency").notNull(),
+    reason: text("reason"),
+    stripeRefundId: text("stripe_refund_id"),
+    failureCode: text("failure_code"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
   },
-  (table) => [uniqueIndex("stripe_events_id_idx").on(table.stripeEventId)],
+  (table) => [
+    uniqueIndex("refunds_order_idx").on(table.orderId),
+    uniqueIndex("refunds_stripe_refund_idx").on(table.stripeRefundId),
+    index("refunds_status_idx").on(table.status),
+    index("refunds_requested_by_idx").on(table.requestedByUserId),
+    check("refunds_amount_non_negative", sql`${table.amountInCents} >= 0`),
+    check("refunds_currency_usd", sql`lower(${table.currency}) = 'usd'`),
+    check("refunds_status_valid", sql`${table.status} in ('pending', 'succeeded', 'failed')`),
+  ],
 );
+
+export const stripeEvents = pgTable("stripe_events", {
+  id: text("id").primaryKey(),
+  stripeEventId: text("stripe_event_id").notNull().unique(),
+  type: text("type").notNull(),
+  processedAt: timestamp("processed_at", { withTimezone: true }).notNull().defaultNow(),
+});
 
 export { user, session, account, verification } from "./auth-schema";
 export type Product = typeof products.$inferSelect;
 export type Order = typeof orders.$inferSelect;
 export type OrderItem = typeof orderItems.$inferSelect;
 export type Entitlement = typeof entitlements.$inferSelect;
+export type Refund = typeof refunds.$inferSelect;

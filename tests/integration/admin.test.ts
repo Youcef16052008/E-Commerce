@@ -1,8 +1,8 @@
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import { randomUUID } from "node:crypto";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "@/server/db";
-import { user, orders, orderItems, entitlements, products } from "@/server/db/schema";
+import { user, orders, orderItems, products } from "@/server/db/schema";
 import {
   createAdminProduct,
   queryAdminProducts,
@@ -225,167 +225,14 @@ describe.skipIf(!hasDatabase)("Admin (intégration)", () => {
   });
 });
 
-describe.skipIf(!hasDatabase)("Remboursement — révocation des droits (H-6)", () => {
-  const email = `it-refund-${runId}@biblio.test`;
-  let userId = "";
-  let productA = "";
-  let productB = "";
-  const orderIds: string[] = [];
-
-  async function mkOrder(status: "pending" | "paid" | "failed", productId: string, price: number) {
-    const id = randomUUID();
-    orderIds.push(id);
-    await db.insert(orders).values({
-      id,
-      userId,
-      status,
-      totalInCents: price,
-      currency: "usd",
-      paidAt: status === "paid" ? new Date() : null,
-    });
-    await db.insert(orderItems).values({
-      orderId: id,
-      productId,
-      titleSnapshot: "Produit H-6",
-      priceInCents: price,
-      quantity: 1,
-      currency: "usd",
-    });
-    return id;
-  }
-
-  async function grant(userIdArg: string, productId: string, orderId: string) {
-    await db
-      .insert(entitlements)
-      .values({
-        id: randomUUID().replace(/-/g, ""),
-        userId: userIdArg,
-        productId,
-        orderId,
-      })
-      .onConflictDoNothing();
-  }
-
-  async function entitled(productId: string): Promise<boolean> {
-    const rows = await db
-      .select({ id: entitlements.id })
-      .from(entitlements)
-      .where(and(eq(entitlements.userId, userId), eq(entitlements.productId, productId)));
-    return rows.length > 0;
-  }
-
-  beforeAll(async () => {
-    const [u] = await db
-      .insert(user)
-      .values({ id: randomUUID(), name: "Refund IT", email, role: "customer" })
-      .returning({ id: user.id });
-    userId = u.id;
-    for (const [idx, price] of [100, 200].entries()) {
-      const id = randomUUID();
-      await db.insert(products).values({
-        id,
-        slug: `it-refund-${runId}-${idx}`,
-        title: `Produit refund ${idx}`,
-        author: "Tests",
-        format: "epub",
-        priceInCents: price,
-        currency: "usd",
-        published: true,
-      });
-      if (idx === 0) productA = id;
-      else productB = id;
-    }
-  });
-
-  afterAll(async () => {
-    for (const id of orderIds) {
-      await db.delete(orderItems).where(eq(orderItems.orderId, id));
-      await db.delete(orders).where(eq(orders.id, id));
-    }
-    await db.delete(entitlements).where(eq(entitlements.userId, userId));
-    await db
-      .delete(products)
-      .where(eq(products.id, productA))
-      .catch(() => undefined);
-    await db
-      .delete(products)
-      .where(eq(products.id, productB))
-      .catch(() => undefined);
-    await db.delete(user).where(eq(user.email, email));
-  });
-
-  it("rembourser une commande payée révoque le droit d'accès (même transaction)", async () => {
-    const o = await mkOrder("paid", productA, 100);
-    await grant(userId, productA, o);
-    expect(await entitled(productA)).toBe(true);
-
-    const res = await updateOrderStatus(o, { status: "refunded" });
-    expect(res.ok).toBe(true);
-    if (!res.ok) return;
-    expect(res.order.status).toBe("refunded");
-    expect(await entitled(productA)).toBe(false);
-  });
-
-  it("achat en double : le droit est conservé tant qu'une commande payée couvre le produit", async () => {
-    const o1 = await mkOrder("paid", productB, 200);
-    const o2 = await mkOrder("paid", productB, 200);
-    // le droit est créé par la première commande (index unique user+produit)
-    await grant(userId, productB, o1);
-
-    const r1 = await updateOrderStatus(o1, { status: "refunded" });
-    expect(r1.ok).toBe(true);
-    expect(await entitled(productB)).toBe(true); // encore couvert par o2
-
-    const r2 = await updateOrderStatus(o2, { status: "refunded" });
-    expect(r2.ok).toBe(true);
-    expect(await entitled(productB)).toBe(false); // plus aucune couverture
-  });
-
-  it("rembourser une commande pending → 409 INVALID_STATE, commande intacte", async () => {
-    const o = await mkOrder("pending", productA, 100);
-    const res = await updateOrderStatus(o, { status: "refunded" });
-    expect(res.ok).toBe(false);
-    if (!res.ok) {
-      expect(res.error.code).toBe("INVALID_STATE");
-      expect(res.error.status).toBe(409);
-    }
-    const rows = await db.select().from(orders).where(eq(orders.id, o)).limit(1);
-    expect(rows[0].status).toBe("pending");
-  });
-
-  it("rembourser une commande failed → 409 INVALID_STATE", async () => {
-    const o = await mkOrder("failed", productA, 100);
-    const res = await updateOrderStatus(o, { status: "refunded" });
-    expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error.code).toBe("INVALID_STATE");
-  });
-
-  it("rembourser deux fois → 409 INVALID_STATE la seconde fois", async () => {
-    const o = await mkOrder("paid", productA, 100);
-    await grant(userId, productA, o);
-    expect((await updateOrderStatus(o, { status: "refunded" })).ok).toBe(true);
-    const again = await updateOrderStatus(o, { status: "refunded" });
-    expect(again.ok).toBe(false);
-    if (!again.ok) expect(again.error.code).toBe("INVALID_STATE");
-  });
-});
-
-describe.skipIf(!hasDatabase)("Transitions de statut — machine à états (L-1)", () => {
-  const email = `it-trans-${runId}@biblio.test`;
+describe.skipIf(!hasDatabase)("Transitions admin — paiement géré par Stripe", () => {
+  const email = `it-admin-payment-${runId}@biblio.test`;
   let userId = "";
   const orderIds: string[] = [];
-  let paidOrderId = "";
-  let failedOrderId = "";
-  let refundedOrderId = "";
-  let pendingOrderId = "";
 
   async function mkOrder(status: "pending" | "paid" | "failed" | "refunded") {
     const id = randomUUID();
     orderIds.push(id);
-    if (status === "paid") paidOrderId = id;
-    if (status === "failed") failedOrderId = id;
-    if (status === "refunded") refundedOrderId = id;
-    if (status === "pending") pendingOrderId = id;
     await db.insert(orders).values({
       id,
       userId,
@@ -400,7 +247,7 @@ describe.skipIf(!hasDatabase)("Transitions de statut — machine à états (L-1)
   beforeAll(async () => {
     const [u] = await db
       .insert(user)
-      .values({ id: randomUUID(), name: "Trans IT", email, role: "customer" })
+      .values({ id: randomUUID(), name: "Payment state IT", email, role: "customer" })
       .returning({ id: user.id });
     userId = u.id;
   });
@@ -418,44 +265,37 @@ describe.skipIf(!hasDatabase)("Transitions de statut — machine à états (L-1)
       .catch(() => undefined);
   });
 
-  async function expectRejected(orderId: string, to: "pending" | "paid" | "fulfilled") {
-    const res = await updateOrderStatus(orderId, { status: to });
-    expect(res.ok, `${orderId} → ${to} doit être refusé`).toBe(false);
-    if (!res.ok) {
-      expect(res.error.code).toBe("INVALID_STATE");
-      expect(res.error.status).toBe(409);
-      expect(res.error.message ?? "").toContain("→");
+  it("allows only paid → fulfilled as the operational acknowledgement", async () => {
+    const paid = await mkOrder("paid");
+
+    const result = await updateOrderStatus(paid, { status: "fulfilled" });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.order.status).toBe("fulfilled");
+  });
+
+  it("refuses every manual payment or refund state change and preserves the order", async () => {
+    const pending = await mkOrder("pending");
+    const paid = await mkOrder("paid");
+    const failed = await mkOrder("failed");
+
+    for (const [id, target] of [
+      [pending, "paid"],
+      [paid, "refunded"],
+      [failed, "pending"],
+    ] as const) {
+      const result = await updateOrderStatus(id, { status: target });
+      expect(result.ok, `${id} → ${target}`).toBe(false);
+      if (!result.ok) {
+        expect(result.error.code).toBe("PAYMENT_STATUS_MANAGED_BY_STRIPE");
+        expect(result.error.status).toBe(409);
+      }
     }
-  }
 
-  it("refuse paid → pending (on ne rétrograde pas une commande payée)", async () => {
-    await mkOrder("paid");
-    await expectRejected(paidOrderId, "pending");
-    const rows = await db.select().from(orders).where(eq(orders.id, paidOrderId)).limit(1);
+    const rows = await db
+      .select({ id: orders.id, status: orders.status })
+      .from(orders)
+      .where(eq(orders.id, paid));
     expect(rows[0].status).toBe("paid");
-  });
-
-  it("refuse failed → pending et paid (failed est terminal)", async () => {
-    await mkOrder("failed");
-    await expectRejected(failedOrderId, "pending");
-    await expectRejected(failedOrderId, "paid");
-  });
-
-  it("refuse refunded → paid (refunded est terminal)", async () => {
-    await mkOrder("refunded");
-    await expectRejected(refundedOrderId, "paid");
-  });
-
-  it("refuse la transition identité (paid → paid) et pending → fulfilled", async () => {
-    await mkOrder("paid");
-    await mkOrder("pending");
-    await expectRejected(paidOrderId, "paid");
-    await expectRejected(pendingOrderId, "fulfilled");
-  });
-
-  it("refuse pending → refunded (le remboursement exige paid/fulfilled)", async () => {
-    const res = await updateOrderStatus(pendingOrderId, { status: "refunded" });
-    expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error.code).toBe("INVALID_STATE");
   });
 });

@@ -8,7 +8,6 @@ import {
   listAllOrdersWithUsers,
   getOrderById,
   updateOrderStatusById,
-  refundOrderById,
 } from "../infrastructure/admin-repo";
 import { orderStatusLabel } from "@/features/orders/domain/order-status";
 import { canTransition } from "@/features/orders/domain/order-transitions";
@@ -69,8 +68,19 @@ export async function updateOrderStatus(
     };
   }
 
-  // L-1 : machine à états — toute transition non autorisée est refusée
-  // (refunded/failed terminaux, pas de paid → pending, pas d'identité…).
+  if (parsed.data.status !== "fulfilled") {
+    return {
+      ok: false,
+      error: {
+        code: "PAYMENT_STATUS_MANAGED_BY_STRIPE",
+        status: 409,
+        message:
+          "Les statuts de paiement et de remboursement sont mis à jour uniquement par Stripe.",
+      },
+    };
+  }
+
+  // Seule l'annotation opérationnelle paid → fulfilled reste manuelle.
   if (!canTransition(existing.status as OrderStatus, parsed.data.status)) {
     return {
       ok: false,
@@ -80,16 +90,6 @@ export async function updateOrderStatus(
         message: `Transition impossible : ${existing.status} → ${parsed.data.status}.`,
       },
     };
-  }
-
-  // H-6 : le remboursement révoque les entitlements accordés par cette
-  // commande (même transaction, voir refundOrderById).
-  if (parsed.data.status === "refunded") {
-    const order = await refundOrderById(id);
-    if (!order) {
-      return { ok: false, error: { code: "NOT_FOUND", status: 404 } };
-    }
-    return { ok: true, order };
   }
 
   const order = await updateOrderStatusById(id, parsed.data.status);

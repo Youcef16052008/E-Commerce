@@ -12,17 +12,44 @@ redirection de succès. Le paiement est délivré "at least once".
 ## Décision
 
 - **Stripe Checkout Sessions** (hébergé, création serveur).
-- **Source de vérité = webhook signé** (`checkout.session.completed`), pas l'écran de succès.
+- **Source de vérité = webhooks Stripe signés** (`checkout.session.completed` ou
+  `checkout.session.async_payment_succeeded`), pas l'écran de succès. Les échecs
+  async et l'expiration de session sont aussi consommés.
 - **Signatures** : `stripe.webhooks.constructEvent` sur le **corps brut** (jamais pré-parsé).
-- **Idempotence 2 couches** : `Idempotency-Key` à la création de session + table `stripe_events`
-  avec `stripeEventId UNIQUE` (ON CONFLICT DO NOTHING) côté réception.
-- **Prix relu côté serveur** (jamais depuis le client) ; montants en centimes.
+- **Idempotence 2 couches** : fingerprint déterministe de panier → ordre pending
+  unique → `Idempotency-Key` Stripe lié à l'ordre ; table `stripe_events` avec
+  `stripeEventId UNIQUE` côté réception.
+- **Prix relu côté serveur** (jamais depuis le client), devise et montant Stripe
+  comparés à l'ordre ; montants en centimes.
+- Une licence numérique est personnelle : quantité forcée à 1 et rachat bloqué
+  lorsqu'un entitlement existe.
+- `stripe_events`, `paid`, les entitlements et le retrait des seules lignes de
+  panier acquittées sont écrits dans **une transaction unique**.
+- **Remboursement intégral** : l'admin réserve d'abord une ligne `refunds`
+  unique par commande et bascule l'ordre `paid|fulfilled → refund_pending` dans
+  la même transaction. L'appel Stripe porte une clé d'idempotence dérivée de
+  cette demande. `refund.created` / `refund.updated` / `refund.failed` signés
+  constituent ensuite la seule source de vérité : succès → `refunded` et
+  révocation atomique des entitlements ; échec → restauration de l'état
+  antérieur ; pending → accès conservé. Si une autre commande encaissée couvre
+  le même ouvrage pour le même client, l'entitlement est conservé et son lien
+  d'audit est transféré vers cette autre commande.
 
 ## Conséquences
 
-- Réponse 2xx rapide au webhook, traitement asynchrone, retries Stripe absorbés par idempotence.
-- Création `order` + `entitlement` dans une transaction.
-- Tests dédiés : doublon de webhook ignoré, montant client falsifié rejeté, accès refusé sans paiement.
+- Le webhook est traité **avant** la réponse HTTP. Une anomalie ou une erreur
+  transactionnelle reçoit un 5xx afin que Stripe le rejoue ; l'event n'est alors
+  pas durablement marqué comme traité.
+- L'ordre stocke son fingerprint, l'identifiant de Checkout, le Payment Intent
+  et l'expiration. Un clic répété reprend la session ouverte ; une session
+  expirée laisse une commande auditable et permet une nouvelle intention.
+- L'admin ne peut pas simuler un paiement ou un remboursement localement. Il
+  peut uniquement demander un remboursement complet Stripe pour `paid` ou
+  `fulfilled`; l'UI indique explicitement qu'il est en attente jusqu'au webhook.
+  Une erreur/timeout Stripe ne déclenche pas de seconde demande ni de révocation
+  locale : la file de réconciliation signale une confirmation absente après 15 minutes.
+- Tests dédiés : doublon/rejeu de webhook, montant ou client incohérent, panier
+  multi-onglet ciblé, quantité/rachat et concurrence d'intention.
 - Stripe CLI en local (`stripe listen`) pour tester de vraies charges signées.
 
 ## Risques

@@ -54,6 +54,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
             <Link href="/admin/orders" className="text-neutral-700 hover:text-neutral-900">
               Commandes
             </Link>
+            <Link href="/admin/payments" className="text-neutral-700 hover:text-neutral-900">
+              Paiements à examiner
+            </Link>
           </nav>
         </div>
       </div>

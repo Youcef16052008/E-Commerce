@@ -31,7 +31,9 @@ serveur (assets volumineux), accès à durée limitée.
   serveur. L'upload se fait côté serveur, **hors request path**
   (`books:upload` / `import:gutenberg`), jamais depuis le client.
 - Webhook Stripe : corps brut + vérification de signature avant traitement ;
-  endpoint `/api/webhooks/stripe` (event `checkout.session.completed`).
+  endpoint `/api/webhooks/stripe` (`checkout.session.completed`,
+  `checkout.session.async_payment_succeeded`,
+  `checkout.session.async_payment_failed`, `checkout.session.expired`).
 - Rollback par re-déploiement (Vercel → « Promote to Production ») ; migrations
   du MVP additives (aucun down SQL requis).
 - Monitoring/erreurs : service d'observabilité (Sentry ou équivalent) à activer

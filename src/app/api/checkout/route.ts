@@ -15,7 +15,11 @@ export async function POST() {
   const result = await createCheckout(user.id);
   if (!result.ok) {
     const status =
-      result.error.code === "EMPTY_CART" ? 400 : result.error.code === "PAYMENT_ERROR" ? 502 : 400;
+      result.error.code === "PAYMENT_ERROR"
+        ? 502
+        : result.error.code === "ALREADY_OWNED" || result.error.code === "CHECKOUT_NOT_AVAILABLE"
+          ? 409
+          : 400;
     return NextResponse.json({ error: result.error.code }, { status });
   }
 

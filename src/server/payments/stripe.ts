@@ -15,6 +15,12 @@ export function getStripe(): Stripe {
   if (!secretKey) {
     throw new Error("STRIPE_SECRET_KEY is not set. See .env.example.");
   }
+  // Phase 1 deliberately cannot process live money. Remove/replace this guard
+  // only through a separately reviewed launch decision with legal, tax,
+  // reconciliation and operational prerequisites completed.
+  if (!/^(sk|rk)_test_/.test(secretKey)) {
+    throw new Error("Stripe live mode is disabled: STRIPE_SECRET_KEY must be a test-mode key.");
+  }
   _client = new Stripe(secretKey, {
     typescript: true,
   });

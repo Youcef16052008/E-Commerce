@@ -50,7 +50,7 @@ async function fetchOrderTotals() {
 
 /**
  * Agrégat revenu : `sum(total_in_cents)` + compteur, UNiquement sur les
- * statuts `paid`/`fulfilled` (règle métier du domaine). `coalesce` → 0 si
+ * statuts de revenu du domaine (paid/fulfilled/refund_pending). `coalesce` → 0 si
  * aucune commande éligible.
  */
 async function fetchRevenue() {
@@ -93,7 +93,7 @@ async function fetchRecentOrders(): Promise<AdminRecentOrder[]> {
 }
 
 /**
- * Top 5 produits par unités vendues, commandes paid/fulfilled uniquement.
+ * Top 5 produits par unités encaissées, avec remboursement encore non confirmé inclus.
  * Titre repris du `title_snapshot` (fidèle à ce qui a été vendu, même si le
  * produit change de titre ensuite).
  */

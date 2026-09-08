@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "stripe": {
+      "command": "npx",
+      "args": ["--no-install", "@stripe/mcp@0.3.3"]
+    },
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "--no-install",
+        "@playwright/mcp@0.0.80",
+        "--headless",
+        "--isolated",
+        "--output-dir=test-results/mcp"
+      ]
+    }
+  }
+}

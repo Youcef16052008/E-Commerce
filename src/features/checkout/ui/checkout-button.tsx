@@ -23,7 +23,15 @@ export function CheckoutButton() {
       }
       const data = await res.json();
       if (!res.ok || !data.url) {
-        setError("Impossible de créer la session de paiement. Réessayez.");
+        setError(
+          data.error === "ALREADY_OWNED"
+            ? "Un ouvrage est déjà disponible dans votre bibliothèque. Retirez-le du panier."
+            : data.error === "CHECKOUT_NOT_AVAILABLE"
+              ? "Cette commande est en cours de confirmation. Consultez votre bibliothèque dans un instant."
+              : data.error === "INVALID_LICENSE_QUANTITY"
+                ? "Le panier contient une quantité invalide. Retirez puis ajoutez à nouveau l’ouvrage."
+                : "Impossible de créer la session de paiement. Réessayez.",
+        );
         return;
       }
       window.location.href = data.url; // vers Stripe Checkout
