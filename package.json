@@ -16,6 +16,7 @@
     "test:e2e:ui": "playwright test --ui",
     "mcp:stripe": "mcp",
     "mcp:playwright": "playwright-mcp --headless --isolated --output-dir=test-results/mcp",
+    "payments:reconcile": "tsx scripts/reconcile-payments.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",

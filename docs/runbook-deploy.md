@@ -135,6 +135,15 @@
 5. Tester en réel : achat test complet (`4242 4242 4242 4242`, date future,
    CVC quelconque) → la commande passe `paid` (« Payée »), l'entitlement est
    créé, le téléchargement est disponible dans la bibliothèque.
+6. Exécuter ensuite la réconciliation interne avec la même base :
+
+   ```bash
+   npm run payments:reconcile -- --strict
+   ```
+
+   Le résultat doit être vide. En cas d'écart, consulter `/admin/payments`,
+   enquêter dans Stripe et corriger par le workflow signé ; ne jamais modifier
+   manuellement un statut financier ou accorder un droit depuis cette page.
 
 ## 5. Admin — mot de passe fort one-shot
 

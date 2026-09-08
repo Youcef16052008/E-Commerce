@@ -136,6 +136,7 @@ erDiagram
 
 - `GET/POST /api/admin/products`, `PATCH/DELETE /api/admin/products/[id]`.
 - `GET /api/admin/orders`, `GET /api/admin/stats`.
+- `GET /api/admin/payments/exceptions` et `/admin/payments` → file de réconciliation interne en lecture seule : références Stripe manquantes, entitlement absent et Checkout expiré encore pending.
 - `PATCH /api/admin/orders/[id]/status` → seule la transition opérationnelle
   `paid → fulfilled` est manuelle. Les statuts de paiement, d'échec et de
   remboursement sont réservés aux workflows/webhooks Stripe ; toute tentative
