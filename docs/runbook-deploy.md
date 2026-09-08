@@ -2,12 +2,11 @@
 
 **Cible : Vercel (Next 16) + Neon (Postgres 17) + Cloudflare R2 + Stripe (mode test).**
 
-> **Statut (2026-09-05) : config + procédure prêtes ET durcies (registre
-> `docs/hardening-plan.md` exécuté : H-1..H-6 + L-1..L-4), déploiement À FAIRE.**
-> Les credentials Vercel/Neon/R2 ne sont pas disponibles dans le sandbox Arena —
-> chaque étape du § Post-deploy est donc marquée « à faire ». Rien n'est
-> inventé : aucune URL live, aucun résultat de smoke test fictif (le smoke
-> pré-deploy documenté dans `project-state.md` est **local**).
+> **Statut (2026-09-08) : test/staging d’abord, aucun Stripe live.** Les migrations
+> `0004`→`0007`, les intégrations PostgreSQL, les webhooks test et la réconciliation
+> distante doivent être validés sur une base Arena/OAuth **isolée** avant toute
+> préversion externe. Les credentials ne sont pas disponibles dans ce sandbox : aucun
+> résultat de base réelle ou paiement Stripe test n’est inventé.
 
 ## Prérequis
 
@@ -19,24 +18,29 @@
 
 ---
 
-## 1. Base de données — Neon
+## 1. Base de données de test isolée — obligatoire
 
-1. Console Neon → nouveau projet (ou réutiliser `fragrant-bonus-35221703`).
-2. Utiliser la **branche `production`** (les previews Vercel pourront créer des
-   branches éphémères si besoin, plus tard).
-3. Copier la connection string → `DATABASE_URL` (Vercel, scopes Production +
-   Preview). Ajouter `?sslmode=require` si absent.
-4. Appliquer les migrations **depuis une machine avec le repo** (pas de
-   `db:push` en prod — le journal `drizzle/meta` est versionné et complet) :
+1. Via Arena/OAuth, créer ou sélectionner une base PostgreSQL **jetable et non
+   productive**. Ne jamais réutiliser une URL de développement, de préproduction
+   partagée ou de production : les intégrations écrivent et nettoient leurs données.
+2. Créer le fichier local ignoré par Git, sans jamais y copier de secret dans ce dépôt :
 
    ```bash
-   cp .env.example .env   # renseigner UNIQUEMENT DATABASE_URL
+   cp .env.test.example .env.test
+   # renseigner DATABASE_URL avec la base isolée et les valeurs Stripe TEST fournies par Arena
    npm ci
-   npm run db:migrate     # drizzle-kit migrate → journal + snapshots
+   npm run db:migrate:test
+   npm run test:integration:test
    ```
 
-5. Vérifier : `npm run db:studio` → 10 tables (`products`, `cart_items`,
-   `orders`, `order_items`, `entitlements`, `refunds`, `stripe_events` + 4 tables auth).
+3. Conserver les sorties de migration/test avec le run de staging. La migration est
+   versionnée (`0000`→`0007`) ; **ne pas employer `db:push`** pour ce contrôle.
+4. Vérifier avec `npm run db:studio:test` que les 12 tables attendues existent :
+   `products`, `cart_items`, `orders`, `order_items`, `entitlements`, `refunds`,
+   `stripe_events`, `stripe_sync_log` et les 4 tables Better Auth.
+5. Seulement après ce contrôle, une base de préversion Vercel distincte peut recevoir
+   la même procédure via `DATABASE_URL` et `npm run db:migrate`. Une production n’est
+   pas autorisée par cette phase.
 
 ## 2. Stockage — Cloudflare R2
 
@@ -91,6 +95,8 @@
 
    > ⚠️ Si `BETTER_AUTH_URL` n'est pas l'URL https publique, la session est
    > émise sur le mauvais domaine → « déconnecté » permanent.
+   > Les clés `sk_live_` / `rk_live_` sont refusées par le code : ne renseigner
+   > qu’un compte Stripe test dans tous les environnements de cette phase.
 
 4. **Deployment protection** (option conseillé) : les previews restent
    publiques mais peuvent être protégées par password (Vercel → Deployments).
@@ -137,15 +143,21 @@
    CVC quelconque) → la commande passe `paid` (« Payée »), l'entitlement est
    créé, le téléchargement est disponible dans la bibliothèque.
 6. Tester le remboursement **uniquement en mode test** : depuis une commande `paid` ou `fulfilled`, demander le remboursement dans `/admin/orders`. Vérifier dans le Dashboard Stripe test qu'un seul Refund est créé, que la commande affiche d'abord `Remboursement en cours`, puis `Remboursée` seulement après le webhook et que l'ouvrage disparaît alors de la bibliothèque. Un timeout/une erreur d'API laisse la commande en attente : ne pas recliquer ; investiguer d'abord dans Stripe et `/admin/payments`.
-7. Exécuter ensuite la réconciliation interne avec la même base :
+7. Exécuter ensuite les deux réconciliations avec cette même base/test account :
 
    ```bash
    npm run payments:reconcile -- --strict
+   npm run stripe:reconcile -- --limit 25 --strict
    ```
 
-   Le résultat doit être vide. En cas d'écart, consulter `/admin/payments`,
-   enquêter dans Stripe et corriger par le workflow signé ; ne jamais modifier
-   manuellement un statut financier ou accorder un droit depuis cette page.
+   La première examine uniquement les invariants Biblio. La seconde lit les Payment
+   Intents/refunds Stripe test persistés et écrit seulement une trace non financière
+   dans `stripe_sync_log`. Un résultat non vide doit être investigué dans Stripe et
+   `/admin/payments` ; ne jamais modifier manuellement un statut financier ou
+   accorder/révoquer un droit depuis une réconciliation.
+
+8. Conserver le `runId` affiché par `stripe:reconcile`, les IDs d’événements webhook
+   et les résultats de test dans le dossier de validation staging.
 
 ## 5. Admin — mot de passe fort one-shot
 
@@ -193,9 +205,11 @@
 - **App** : Vercel → Deployments → cliquer sur un deployment antérieur →
   « Promote to Production » (redeploy instantané, ~1 min).
 - **Base** : les migrations Drizzle de ce projet sont **additives**
-  (`0000`→`0003`, aucune DROP/ALTER destructif) — aucun rollback SQL nécessaire
-  au MVP ; en cas de migration future destructive, prévoir le down SQL
-  correspondant dans le journal (drizzle-kit) AVANT de la fusionner.
+  (`0000`→`0007`, aucune DROP/ALTER destructif). La migration `0007` ajoute un
+  trigger append-only à `stripe_sync_log` : ne pas tenter de purger ce journal par
+  SQL applicatif. La base de cette phase est jetable ; pour une migration future
+  destructive, prévoir le down SQL correspondant dans le journal (drizzle-kit)
+  **avant** de la fusionner.
 - **R2** : supprimer un object ne casse rien (404 typé si l'ouvrage n'existe
   plus) ; re-upload via `books:upload` / `import:gutenberg`.
 

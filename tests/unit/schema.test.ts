@@ -6,6 +6,7 @@ import {
   entitlements,
   refunds,
   stripeEvents,
+  stripeSyncLog,
 } from "@/server/db/schema";
 
 describe("schéma de données Biblio", () => {
@@ -16,6 +17,7 @@ describe("schéma de données Biblio", () => {
     expect(entitlements).toBeDefined();
     expect(refunds).toBeDefined();
     expect(stripeEvents).toBeDefined();
+    expect(stripeSyncLog).toBeDefined();
   });
 
   it("persists the identifiers needed to reconcile a Checkout intent", () => {

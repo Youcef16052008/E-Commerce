@@ -34,6 +34,11 @@ redirection de succès. Le paiement est délivré "at least once".
   antérieur ; pending → accès conservé. Si une autre commande encaissée couvre
   le même ouvrage pour le même client, l'entitlement est conservé et son lien
   d'audit est transféré vers cette autre commande.
+- **Rapprochement Stripe test ciblé** : la CLI ne recherche pas globalement Stripe.
+  Elle relit séquentiellement et au maximum 100 Payment Intents déjà persistés,
+  puis leurs 100 premiers refunds. Un résultat tronqué est un écart, jamais une
+  confirmation. Ses résultats codifiés sont ajoutés à `stripe_sync_log`, sans détail
+  client ou secret, et elle n’a aucun chemin d’écriture financière.
 
 ## Conséquences
 
@@ -50,7 +55,10 @@ redirection de succès. Le paiement est délivré "at least once".
   locale : la file de réconciliation signale une confirmation absente après 15 minutes.
 - Tests dédiés : doublon/rejeu de webhook, montant ou client incohérent, panier
   multi-onglet ciblé, quantité/rachat et concurrence d'intention.
-- Stripe CLI en local (`stripe listen`) pour tester de vraies charges signées.
+- Stripe CLI en local (`stripe listen`) et le MCP Stripe officiel servent à tester
+  les événements signés d’un **compte test**. Une base PostgreSQL isolée et
+  `.env.test` sont obligatoires ; aucun essai de paiement live n’entre dans ce
+  workflow.
 
 ## Risques
 

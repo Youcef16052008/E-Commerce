@@ -44,7 +44,7 @@ Erreurs typées. Secrets côté serveur. Décisions dans `docs/adr/`.
 ## Progression
 
 - [x] Discovery, Product Brief, Stack, Architecture, Plan, ADR (docs/).
-- [~] **Phase 1 — sûreté transactionnelle** : checkout/webhook/entitlement idempotents et file de réconciliation interne livrés ; remboursement complet Stripe durable (`refund_pending`, journal `refunds`, webhook signé, révocation conditionnelle) livré en code et migrations `0005`/`0006`. **À valider sur PostgreSQL isolé et Stripe test avant toute décision de lancement.**
+- [~] **Phase 1 — sûreté transactionnelle** : checkout/webhook/entitlement idempotents et file de réconciliation interne livrés ; remboursement complet Stripe durable (`refund_pending`, journal `refunds`, webhook signé, révocation conditionnelle) livré en code et migrations `0005`/`0006`. La réconciliation Stripe distante **test-only**, ciblée par Payment Intent persistant, bornée, sans mutation financière et auditée dans `stripe_sync_log` (migration `0007` append-only) est également livrée. **À valider sur PostgreSQL isolé et Stripe test avant toute décision de lancement.**
 - [x] **Slice 0 — Fondations** : scaffold Next 16 + TS strict + Tailwind + Drizzle/Neon + Better Auth + Vitest + Playwright + ESLint/Prettier + CI. Migration initiale générée.
 - [x] **Slice 1 — Authentication** : client/serveur Better Auth, pages connexion/inscription,
       en-tête avec session, déconnexion, RBAC, seed admin. Vérifié en réel sur un Postgres 17 local.
@@ -155,9 +155,9 @@ Erreurs typées. Secrets côté serveur. Décisions dans `docs/adr/`.
 
 ## Prochaine tâche
 
-1. **Validation isolée obligatoire (pas de production)** : connecter PostgreSQL de test via Arena/OAuth, appliquer `0004` → `0006`, puis exécuter toute la suite d’intégration, dont `tests/integration/refunds.test.ts`.
-2. **Stripe test** : configurer les sept événements webhook, réaliser un achat test puis un remboursement test ; confirmer le statut intermédiaire, le webhook, l’accès et `npm run payments:reconcile -- --strict`.
-3. **Avant live** : terminer la réconciliation avec Stripe distant, valider identité du vendeur/pays servis/TVA-CGV-consentement de contenu numérique/droits de catalogue avec les professionnels compétents, et faire une revue de lancement séparée. Le verrou de clé live ne doit pas être retiré avant cela.
+1. **Validation isolée obligatoire (pas de production)** : connecter PostgreSQL de test via Arena/OAuth, copier `.env.test.example` vers `.env.test`, appliquer `0004` → `0007` avec `npm run db:migrate:test`, puis exécuter `npm run test:integration:test`, dont `tests/integration/refunds.test.ts`.
+2. **Stripe test** : configurer les sept événements webhook, réaliser un achat test puis un remboursement test ; confirmer le statut intermédiaire, le webhook, l’accès, `npm run payments:reconcile -- --strict` et `npm run stripe:reconcile -- --strict`. Conserver le `runId` d’audit ; le second outil ne doit jamais modifier de statut/droit/remboursement.
+3. **Avant live** : valider identité du vendeur/pays servis/TVA-CGV-consentement de contenu numérique/droits de catalogue avec les professionnels compétents (checklist `docs/legal-fiscal-catalog.md`) et faire une revue de lancement séparée. Le verrou de clé live ne doit pas être retiré avant cela.
 4. Déployer éventuellement une **préversion Stripe test** seulement après les étapes 1–2 ; un déploiement live reste hors périmètre.
 
 ## Problèmes connus

@@ -39,6 +39,15 @@ export async function createCheckoutSession(params: {
         orderId: params.orderId,
         userId: params.userId,
       },
+      // Checkout Session metadata is not automatically copied to its Payment
+      // Intent or Charge. Persist it there too for Stripe-side investigations
+      // and safe remote reconciliation without searching all sessions.
+      payment_intent_data: {
+        metadata: {
+          orderId: params.orderId,
+          userId: params.userId,
+        },
+      },
       line_items: params.items.map((it) => ({
         quantity: it.quantity,
         price_data: {

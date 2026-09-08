@@ -30,9 +30,10 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (allow .env.example)
+# env files (allow secret-free templates only)
 .env*
 !.env.example
+!.env.test.example
 
 # Local MCP credentials/configuration (the secret-free template is versioned)
 .mcp.json

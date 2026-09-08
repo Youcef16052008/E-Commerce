@@ -92,6 +92,7 @@ erDiagram
   PRODUCT ||--o{ ENTITLEMENT : donne
   ORDER ||--o| REFUND : demande
   USER ||--o{ REFUND : demande
+  ORDER ||--o{ STRIPE_SYNC_LOG : compare
   STRIPE_EVENT ||--o{ ORDER : traite
 
   USER { text id PK; text email UK; text name; text passwordHash; text role "customer|admin"; timestamp createdAt }
@@ -101,6 +102,7 @@ erDiagram
   ORDER_ITEM { text orderId FK; text productId FK; text titleSnapshot; int priceInCents; text currency; pk(orderId, productId) }
   ENTITLEMENT { text id PK; text userId FK; text productId FK; text orderId FK; timestamp createdAt; timestamp expiresAt "null" }
   REFUND { text id PK; text orderId UK FK; text requestedByUserId FK; text status "pending|succeeded|failed"; int amountInCents; text currency; text stripeRefundId UK; timestamp createdAt; timestamp completedAt }
+  STRIPE_SYNC_LOG { text id PK; text runId; text orderId FK; text stripePaymentIntentId; text status "matched|mismatch|remote_missing|remote_error"; int issueCount; timestamp checkedAt }
   STRIPE_EVENT { text id PK; text stripeEventId UK; text type; timestamp processedAt }
 ```
 
@@ -142,7 +144,8 @@ erDiagram
 
 - `GET/POST /api/admin/products`, `PATCH/DELETE /api/admin/products/[id]`.
 - `GET /api/admin/orders`, `GET /api/admin/stats`.
-- `GET /api/admin/payments/exceptions` et `/admin/payments` → file de réconciliation interne en lecture seule : références Stripe manquantes, entitlement absent, Checkout expiré et demandes de remboursement non confirmées.
+- `GET /api/admin/payments/exceptions` et `/admin/payments` → file de réconciliation **interne** en lecture seule : références Stripe manquantes, entitlement absent, Checkout expiré et demandes de remboursement non confirmées.
+- `npm run stripe:reconcile -- [--order <id>] [--limit 1..100] [--strict]` → seconde réconciliation, bornée et serveur-only, qui lit le Payment Intent et ses refunds Stripe test à partir des identifiants persistés. Elle ne modifie jamais une commande, un remboursement ou un entitlement ; `stripe_sync_log` ne reçoit qu’une trace d’audit non financière.
 - `POST /api/admin/orders/[id]/refund` → réserve un remboursement **intégral** (`refund_pending`) puis appelle Stripe avec une clé d'idempotence durable. Réponse `202` = demande en attente, jamais remboursement confirmé. La confirmation Stripe signée est la seule opération qui révoque l'accès lorsqu'aucun autre achat encaissé du client ne couvre le même ouvrage.
 - `PATCH /api/admin/orders/[id]/status` → seule la transition opérationnelle
   `paid → fulfilled` est manuelle. Les statuts de paiement, d'échec et de
@@ -162,6 +165,7 @@ erDiagram
 - **Idempotence 2 couches** : `Idempotency-Key` à la création de session + table `stripe_events`
   avec `stripeEventId UNIQUE` (ON CONFLICT DO NOTHING) côté réception.
 - **Remboursement intégral durable** : une seule demande par commande (`refunds.order_id UNIQUE`) est réservée avant l'appel Stripe. La clé d'idempotence Stripe est liée à son UUID. La commande reste `refund_pending` en cas de timeout incertain : elle n'est jamais revenue localement à `paid`, et l'accès n'est jamais révoqué sans événement Stripe signé, montant/devise/Payment Intent/métadonnées vérifiés. Une autre commande encore encaissée pour le même ouvrage conserve l'accès et reçoit le lien d'audit de l'entitlement.
+- **Réconciliation distante sans autorité financière** : la commande CLI lit seulement le Payment Intent et au plus 100 refunds liés à son ID persistant ; elle émet un écart si la liste est tronquée. Elle ne crée ni remboursement, ni entitlement, ni changement de statut, et le journal append-only ne conserve que des codes/IDs Stripe.
 - Prix toujours relu depuis la BDD, jamais depuis le client.
 - Validation **Zod** à toutes les frontières (publiques et privées).
 - Erreurs typées ; aucun détail interne exposé (message générique en prod).

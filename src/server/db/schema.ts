@@ -199,6 +199,40 @@ export const refunds = pgTable(
   ],
 );
 
+/**
+ * Append-only audit of a read-only Stripe/DB comparison. It never authorizes a
+ * financial transition: signed webhooks remain the sole mutation path.
+ */
+export const stripeSyncLog = pgTable(
+  "stripe_sync_log",
+  {
+    id: text("id").primaryKey(),
+    runId: text("run_id").notNull(),
+    orderId: text("order_id")
+      .notNull()
+      .references(() => orders.id, { onDelete: "restrict" }),
+    stripePaymentIntentId: text("stripe_payment_intent_id").notNull(),
+    status: text("status", {
+      enum: ["matched", "mismatch", "remote_missing", "remote_error"],
+    }).notNull(),
+    issueCount: integer("issue_count").notNull().default(0),
+    // JSON containing only reconciliation codes/Stripe object IDs, never card,
+    // buyer or API-key data.
+    details: text("details"),
+    checkedAt: timestamp("checked_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("stripe_sync_log_run_idx").on(table.runId),
+    index("stripe_sync_log_order_idx").on(table.orderId),
+    index("stripe_sync_log_status_idx").on(table.status),
+    check("stripe_sync_log_issue_count_non_negative", sql`${table.issueCount} >= 0`),
+    check(
+      "stripe_sync_log_status_valid",
+      sql`${table.status} in ('matched', 'mismatch', 'remote_missing', 'remote_error')`,
+    ),
+  ],
+);
+
 export const stripeEvents = pgTable("stripe_events", {
   id: text("id").primaryKey(),
   stripeEventId: text("stripe_event_id").notNull().unique(),
@@ -212,3 +246,4 @@ export type Order = typeof orders.$inferSelect;
 export type OrderItem = typeof orderItems.$inferSelect;
 export type Entitlement = typeof entitlements.$inferSelect;
 export type Refund = typeof refunds.$inferSelect;
+export type StripeSyncLog = typeof stripeSyncLog.$inferSelect;

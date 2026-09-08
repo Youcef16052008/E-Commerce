@@ -32,14 +32,10 @@ npm run mcp:playwright  # serveur stdio, Chromium headless isolé
 ## Règle Stripe : test d'abord, privilège minimal
 
 Pour le serveur local Stripe, injecter dans l'environnement **du client MCP** une
-clé restreinte (`rk_test_…` d'abord, puis éventuellement `rk_live_…`). Ne jamais
-placer une clé dans ce dépôt ou dans une commande shell enregistrée. Limiter la clé
-aux opérations requises et à l'environnement voulu :
-
-- **test/staging** : lecture, création/suppression de l'endpoint de test et objets de
-  test nécessaires au smoke test ;
-- **live** : lecture par défaut. Élever temporairement et explicitement les droits
-  seulement pour créer/modifier l'endpoint webhook après validation du propriétaire.
+clé restreinte **`rk_test_…` uniquement**. Ne jamais placer une clé dans ce dépôt ou
+dans une commande shell enregistrée. Cette phase interdit les objets et les clés live
+(`sk_live_` / `rk_live_` sont également refusées par l'application) : limiter la clé
+à la lecture, à l’endpoint test et aux objets test nécessaires au smoke test.
 
 Le serveur Stripe peut aussi être utilisé via le serveur officiel distant
 `https://mcp.stripe.com` si le client MCP sait faire OAuth. Cette méthode évite de
