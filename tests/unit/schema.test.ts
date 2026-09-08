@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { cartItems, products, orders, entitlements, stripeEvents } from "@/server/db/schema";
+import {
+  cartItems,
+  products,
+  orders,
+  entitlements,
+  refunds,
+  stripeEvents,
+} from "@/server/db/schema";
 
 describe("schéma de données Biblio", () => {
   it("expose les tables de domaine attendues", () => {
@@ -7,6 +14,7 @@ describe("schéma de données Biblio", () => {
     expect(cartItems).toBeDefined();
     expect(orders).toBeDefined();
     expect(entitlements).toBeDefined();
+    expect(refunds).toBeDefined();
     expect(stripeEvents).toBeDefined();
   });
 

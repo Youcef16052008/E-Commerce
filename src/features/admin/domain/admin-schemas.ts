@@ -50,7 +50,7 @@ export const adminProductUpdateSchema = adminProductCreateSchema
   });
 
 export const adminOrderStatusSchema = z.object({
-  status: z.enum(["pending", "paid", "fulfilled", "failed", "refunded"]),
+  status: z.enum(["pending", "paid", "fulfilled", "refund_pending", "failed", "refunded"]),
 });
 
 export const adminProductListQuerySchema = z.object({

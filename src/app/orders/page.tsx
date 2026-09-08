@@ -13,7 +13,8 @@ function formatDate(date: Date): string {
 
 /**
  * Page « Mes commandes » (RSC) : historique des achats de l'utilisateur connecté.
- * Les statuts reflètent le webhook Stripe (pending → paid → fulfilled…).
+ * Les statuts reflètent les faits Stripe (pending → paid → fulfilled ;
+ * refund_pending → refunded ou retour à l'état précédent après webhook).
  */
 export default async function OrdersPage() {
   const user = await getSessionUser();

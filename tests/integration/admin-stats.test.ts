@@ -13,7 +13,7 @@ import { hasDatabase } from "./has-database";
  * Méthode en écarts (before/after) : la base contient déjà des données
  * (seeds, autres suites), on vérifie que les agrégats augmentent
  * EXACTEMENT du delta attendu — ce qui valide aussi que pending/failed/
- * refunded sont exclus du revenu.
+ * refunded sont exclus du revenu (le jeu ne crée pas de refund_pending).
  *
  * Données créées :
  * - 1 client (role customer)
@@ -21,7 +21,7 @@ import { hasDatabase } from "./has-database";
  * - 5 commandes : pending 100¢, paid 200¢, fulfilled 300¢ (2 unités),
  *   failed 400¢, refunded 500¢
  *
- * Attentes : revenu +500¢ (paid + fulfilled uniquement),
+ * Attentes : revenu +500¢ (paid + fulfilled ; aucune demande de remboursement en cours dans ce jeu),
  * paidOrdersCount +2, top produit = le produit à 2 unités.
  */
 
@@ -203,6 +203,7 @@ describe.skipIf(!hasDatabase)("Stats admin (intégration)", () => {
       pending: baseline.ordersByStatus.pending + 1,
       paid: baseline.ordersByStatus.paid + 1,
       fulfilled: baseline.ordersByStatus.fulfilled + 1,
+      refund_pending: baseline.ordersByStatus.refund_pending,
       failed: baseline.ordersByStatus.failed + 1,
       refunded: baseline.ordersByStatus.refunded + 1,
     });
@@ -211,7 +212,7 @@ describe.skipIf(!hasDatabase)("Stats admin (intégration)", () => {
     expect(sum).toBe(stats.ordersTotal);
   });
 
-  it("revenu : paid + fulfilled UNIQUEMENT (pending/failed/refunded exclus)", async () => {
+  it("revenu : le jeu sans refund_pending compte paid + fulfilled (pending/failed/refunded exclus)", async () => {
     const stats = await viewAdminStats();
     // 200¢ (paid) + 300¢ (fulfilled) = 500¢ — jamais 100+400+500.
     expect(stats.revenueInCents).toBe(baseline.revenueInCents + 500);
@@ -250,12 +251,13 @@ describe.skipIf(!hasDatabase)("Stats admin (intégration)", () => {
     expect(draft!.unitsSold).toBe(1);
   });
 
-  it("statuts FR : libellés présents pour les 5 statuts", async () => {
+  it("statuts FR : libellés présents pour les 6 statuts", async () => {
     const stats = await viewAdminStats();
     expect(stats.ordersByStatusLabel).toEqual({
       pending: "En attente de paiement",
       paid: "Payée",
       fulfilled: "Livrée",
+      refund_pending: "Remboursement en cours",
       failed: "Échec du paiement",
       refunded: "Remboursée",
     });

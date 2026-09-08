@@ -9,15 +9,19 @@ export const PAYMENT_EXCEPTION_KINDS = [
   "PAID_ORDER_MISSING_PAYMENT_INTENT",
   "PAID_ORDER_MISSING_ENTITLEMENT",
   "EXPIRED_CHECKOUT_STILL_PENDING",
+  "REFUND_PENDING_MISSING_REQUEST",
+  "REFUND_CONFIRMATION_OVERDUE",
 ] as const;
 
 export type PaymentExceptionKind = (typeof PAYMENT_EXCEPTION_KINDS)[number];
 
 export const PAYMENT_EXCEPTION_LABELS: Record<PaymentExceptionKind, string> = {
-  PAID_ORDER_MISSING_CHECKOUT_SESSION: "Commande payée sans session Checkout",
-  PAID_ORDER_MISSING_PAYMENT_INTENT: "Commande payée sans Payment Intent",
-  PAID_ORDER_MISSING_ENTITLEMENT: "Commande payée sans droit d’accès",
+  PAID_ORDER_MISSING_CHECKOUT_SESSION: "Commande encaissée sans session Checkout",
+  PAID_ORDER_MISSING_PAYMENT_INTENT: "Commande encaissée sans Payment Intent",
+  PAID_ORDER_MISSING_ENTITLEMENT: "Commande encaissée sans droit d’accès",
   EXPIRED_CHECKOUT_STILL_PENDING: "Checkout expiré encore en attente",
+  REFUND_PENDING_MISSING_REQUEST: "Remboursement en cours sans demande auditée",
+  REFUND_CONFIRMATION_OVERDUE: "Confirmation Stripe du remboursement en retard",
 };
 
 export interface PaymentException {
@@ -58,6 +62,8 @@ export function emptyPaymentExceptionCounts(): Record<PaymentExceptionKind, numb
     PAID_ORDER_MISSING_PAYMENT_INTENT: 0,
     PAID_ORDER_MISSING_ENTITLEMENT: 0,
     EXPIRED_CHECKOUT_STILL_PENDING: 0,
+    REFUND_PENDING_MISSING_REQUEST: 0,
+    REFUND_CONFIRMATION_OVERDUE: 0,
   };
 }
 

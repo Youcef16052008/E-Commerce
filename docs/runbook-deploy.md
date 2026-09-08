@@ -36,7 +36,7 @@
    ```
 
 5. Vérifier : `npm run db:studio` → 10 tables (`products`, `cart_items`,
-   `orders`, `order_items`, `entitlements`, `stripe_events` + 4 tables auth).
+   `orders`, `order_items`, `entitlements`, `refunds`, `stripe_events` + 4 tables auth).
 
 ## 2. Stockage — Cloudflare R2
 
@@ -115,13 +115,14 @@
 
 3. Dashboard Stripe (test) → **Developers → Webhooks → Add endpoint** :
    - URL : `https://<slug>.vercel.app/api/webhooks/stripe`
-   - Événements (les 4 consommés par l'app) :
+   - Événements (les 7 consommés par l'app) :
      - **`checkout.session.completed`**
      - **`checkout.session.async_payment_succeeded`** (paiements à notification
        différée — virement, SEPA… : c'est lui qui déclenche la livraison)
      - **`checkout.session.async_payment_failed`** (commande → `failed`)
      - **`checkout.session.expired`** (libère le fingerprint de checkout afin
        qu'un panier expiré puisse démarrer une nouvelle intention)
+     - **`refund.created`**, **`refund.updated`**, **`refund.failed`** (un remboursement est confirmé, reste pending ou échoue ; seul le succès révoque l'entitlement)
 4. Le webhook lit le **corps brut** (`request.text()` avant
    `stripe.webhooks.constructEvent`) — signature vérifiée avant tout
    traitement ; le traitement est **attendu avant la réponse** (500 en cas
@@ -135,7 +136,8 @@
 5. Tester en réel : achat test complet (`4242 4242 4242 4242`, date future,
    CVC quelconque) → la commande passe `paid` (« Payée »), l'entitlement est
    créé, le téléchargement est disponible dans la bibliothèque.
-6. Exécuter ensuite la réconciliation interne avec la même base :
+6. Tester le remboursement **uniquement en mode test** : depuis une commande `paid` ou `fulfilled`, demander le remboursement dans `/admin/orders`. Vérifier dans le Dashboard Stripe test qu'un seul Refund est créé, que la commande affiche d'abord `Remboursement en cours`, puis `Remboursée` seulement après le webhook et que l'ouvrage disparaît alors de la bibliothèque. Un timeout/une erreur d'API laisse la commande en attente : ne pas recliquer ; investiguer d'abord dans Stripe et `/admin/payments`.
+7. Exécuter ensuite la réconciliation interne avec la même base :
 
    ```bash
    npm run payments:reconcile -- --strict

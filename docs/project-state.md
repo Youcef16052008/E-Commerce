@@ -1,11 +1,12 @@
 # PROJECT_STATE — Biblio
 
-Mis à jour : 2026-09-05.
+Mis à jour : 2026-09-08.
 
 ## Objectif
 
 Boutique e-commerce d'e-books / licences numériques avec délivrance d'entitlements
-après paiement Stripe vérifié. Projet portfolio full-stack senior.
+après paiement Stripe vérifié. Biblio est traité comme un **commerce réel** : les
+paiements live, la fiscalité et les droits de vente ne sont pas des détails de portfolio.
 
 ## Stack & versions (ré-vérifiées au 2026-08-30)
 
@@ -37,21 +38,22 @@ Erreurs typées. Secrets côté serveur. Décisions dans `docs/adr/`.
 - Next 16 / Node 24 / React 19.2 / Tailwind 4.3.
 - Postgres 17 + Drizzle. Better Auth (email/password). Stripe Checkout.
 - Idempotence 2 couches (Idempotency-Key + table `stripe_events` unique).
-- Déploiement : Vercel + Neon + R2/S3. **Neon câblé (project `fragrant-bonus-35221703`,**
-  **branche `production`)** : migration appliquée, 12 produits + admin seedés, app testée en direct.
+- Déploiement cible : Vercel + Neon + R2/S3. **Aucune connexion PostgreSQL Arena/OAuth isolée n'est active dans cette session** : les migrations phase 1 et les tests d'intégration restent donc non appliqués/non exécutés. Aucun résultat live ne doit être inféré de ce document.
+- Stripe est verrouillé par code au mode test : `sk_live_` et `rk_live_` sont refusées jusqu'à une décision de lancement séparée.
 
 ## Progression
 
 - [x] Discovery, Product Brief, Stack, Architecture, Plan, ADR (docs/).
+- [~] **Phase 1 — sûreté transactionnelle** : checkout/webhook/entitlement idempotents et file de réconciliation interne livrés ; remboursement complet Stripe durable (`refund_pending`, journal `refunds`, webhook signé, révocation conditionnelle) livré en code et migrations `0005`/`0006`. **À valider sur PostgreSQL isolé et Stripe test avant toute décision de lancement.**
 - [x] **Slice 0 — Fondations** : scaffold Next 16 + TS strict + Tailwind + Drizzle/Neon + Better Auth + Vitest + Playwright + ESLint/Prettier + CI. Migration initiale générée.
 - [x] **Slice 1 — Authentication** : client/serveur Better Auth, pages connexion/inscription,
       en-tête avec session, déconnexion, RBAC, seed admin. Vérifié en réel sur un Postgres 17 local.
 - [x] **Slice 2 — Catalogue public** : liste (recherche `q`, filtres genre/format/langue, tri,
       pagination), page produit + `generateMetadata` (SEO), API `GET /api/products` et
       `GET /api/products/[slug]`, seed 12 produits. Vérifié en réel (API + rendu + e2e).
-- [x] **Slice 3 — Panier** : persistant en BDD (`cart_items`), ajout/retrait/maj quantité
-      (bornes 1..10), total calculé côté serveur (prix relus depuis `products`), API
-      `GET/POST /api/cart` + `PATCH/DELETE /api/cart/[productId]`, page `/cart`, badge panier,
+- [x] **Slice 3 — Panier** : persistant en BDD (`cart_items`), ajout/retrait d’une
+      licence personnelle à quantité strictement égale à 1, total calculé côté serveur
+      (prix relus depuis `products`), API `GET/POST /api/cart` + `PATCH/DELETE /api/cart/[productId]`, page `/cart`, badge panier,
       bouton "Ajouter au panier" (redirect si non connecté). Rate limiting Better Auth
       documenté (désactivé seulement en e2e via flag).
 - [x] **Infra — Neon** : projet `fragrant-bonus-35221703` (branche production) lié ; migrations
@@ -98,7 +100,7 @@ Erreurs typées. Secrets côté serveur. Décisions dans `docs/adr/`.
       `tsc --noEmit`, ESLint, Prettier **verts** ; `npm test` → **25 tests unitaires OK**
       (9 tests d'intégration prêts, ignorés sans `DATABASE_URL`).
 - [x] **Slice 6 — Commandes / historique** : page `/orders` (ouvrages achetés, statuts
-      français pending/paid/fulfilled/failed/refunded, quantités, totaux relus en base),
+      français pending/paid/fulfilled/refund_pending/failed/refunded, quantités, totaux relus en base),
       `GET /api/me/orders`, lien « Commandes » dans l'en-tête ; `order_items.quantity`
       conservée (migration `0003_order-quantity`, devises USD) ; 8 tests (5 unitaires
       statuts + 2 intégration isolation/liste), validation par la CI (Neon/Postgres).
@@ -110,8 +112,8 @@ Erreurs typées. Secrets côté serveur. Décisions dans `docs/adr/`.
       (schemas + garde) + intégration (CRUD, slug, références, commandes).
 - [x] **Slice 8 — Dashboard admin / stats** : `GET /api/admin/stats` (gardé par
       `requireAdmin` 401/403) + dashboard `/admin` avec **chiffres réels BDD**
-      (produits total/publiés/brouillons, commandes total + répartition 5
-      statuts, revenu USD = **paid+fulfilled uniquement** — jamais
+      (produits total/publiés/brouillons, commandes total + répartition 6
+      statuts, revenu USD = **paid+fulfilled+refund_pending** jusqu’à confirmation Stripe — jamais
       pending/failed/refunded, clients, 5 dernières commandes, top 5 ventes par
       unités). Agrégations SQL Drizzle (count/sum/groupBy, `Promise.all`,
       zéro N+1), règle métier dans le domaine (`REVENUE_ORDER_STATUSES`),
@@ -153,17 +155,10 @@ Erreurs typées. Secrets côté serveur. Décisions dans `docs/adr/`.
 
 ## Prochaine tâche
 
-- ✅ **DURCISSEMENT (2026-09-05) — TERMINÉ, porte d'entrée au deploy levée.** H-1..H-6 +
-  L-1..L-4 corrigés et testés, +34 tests, CI verte (registre : `docs/hardening-plan.md`,
-  écarts et incidents documentés).
-- **Slice 10 (exécution) — À FAIRE** : suivre `docs/runbook-deploy.md` (Neon → R2 →
-  Vercel → webhook Stripe test — les 3 événements à souscrire y sont listés → seed admin
-  one-shot → smoke checklist incluant les headers de sécurité). Runbook déjà aligné sur le
-  durcissement. Ensuite ADR-005 → Adopté + Lighthouse prod (ferme L-5) + Live Demo
-  (uniquement avec une URL vraie).
-- **Slice 11** — étude de cas portfolio (après le deploy ; le récit honnête du
-  durcissement est prêt dans `docs/hardening-plan.md` § étude de cas, avec les écarts
-  documentés).
+1. **Validation isolée obligatoire (pas de production)** : connecter PostgreSQL de test via Arena/OAuth, appliquer `0004` → `0006`, puis exécuter toute la suite d’intégration, dont `tests/integration/refunds.test.ts`.
+2. **Stripe test** : configurer les sept événements webhook, réaliser un achat test puis un remboursement test ; confirmer le statut intermédiaire, le webhook, l’accès et `npm run payments:reconcile -- --strict`.
+3. **Avant live** : terminer la réconciliation avec Stripe distant, valider identité du vendeur/pays servis/TVA-CGV-consentement de contenu numérique/droits de catalogue avec les professionnels compétents, et faire une revue de lancement séparée. Le verrou de clé live ne doit pas être retiré avant cela.
+4. Déployer éventuellement une **préversion Stripe test** seulement après les étapes 1–2 ; un déploiement live reste hors périmètre.
 
 ## Problèmes connus
 

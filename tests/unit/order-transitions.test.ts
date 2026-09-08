@@ -11,7 +11,7 @@ import type { OrderStatus } from "@/features/checkout/domain/checkout-types";
  * ici on fige chaque case — toute transition ajoutée/retirée doit être un
  * choix conscient (et documenté dans le fichier domaine).
  */
-const ALL: OrderStatus[] = ["pending", "paid", "fulfilled", "failed", "refunded"];
+const ALL: OrderStatus[] = ["pending", "paid", "fulfilled", "refund_pending", "failed", "refunded"];
 
 // Payment and refund states are Stripe-managed. The only human operational
 // transition is marking an already-paid order fulfilled.
@@ -33,8 +33,9 @@ describe("canTransition (L-1)", () => {
     }
   });
 
-  it("refunded et failed sont terminaux", () => {
+  it("refund_pending, refunded et failed sont sans transition manuelle", () => {
     for (const to of ALL) {
+      expect(canTransition("refund_pending", to)).toBe(false);
       expect(canTransition("failed", to)).toBe(false);
       expect(canTransition("refunded", to)).toBe(false);
     }

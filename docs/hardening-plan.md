@@ -1,6 +1,8 @@
 # Plan de durcissement — registre des problèmes & corrections
 
-**Date : 2026-09-05.** **Statut : exécuté (2026-09-05) — blocs 1-4 corrigés et testés, poussés sur la PR #3. La porte d'entrée au déploiement (Slice 10) est levée.**
+**Date : 2026-09-05.** **Statut historique : exécuté (2026-09-05) — blocs 1-4 corrigés et testés, poussés sur la PR #3.**
+
+> **Mise à jour phase 1 (2026-09-08).** Ce registre décrit l'état de la revue du 5 septembre, pas l'autorisation actuelle de collecter des paiements. La porte live reste fermée : la fabrique Stripe refuse les clés live, les migrations et tests d'intégration doivent d'abord passer sur PostgreSQL isolé, et les prérequis juridiques/fiscaux et de réconciliation Stripe distante restent obligatoires. Le remplacement du remboursement local historique est documenté dans `docs/adr/004-payments.md` : demande `refund_pending` durable, appel Stripe idempotent et confirmation webhook avant révocation.
 
 Ce document est le produit d'une revue de code « senior » effectuée **sur le code, pas sur
 la documentation** : les chemins critiques (webhook, checkout, livraison d'entitlement,

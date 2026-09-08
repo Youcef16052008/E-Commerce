@@ -25,6 +25,15 @@ redirection de succès. Le paiement est délivré "at least once".
   lorsqu'un entitlement existe.
 - `stripe_events`, `paid`, les entitlements et le retrait des seules lignes de
   panier acquittées sont écrits dans **une transaction unique**.
+- **Remboursement intégral** : l'admin réserve d'abord une ligne `refunds`
+  unique par commande et bascule l'ordre `paid|fulfilled → refund_pending` dans
+  la même transaction. L'appel Stripe porte une clé d'idempotence dérivée de
+  cette demande. `refund.created` / `refund.updated` / `refund.failed` signés
+  constituent ensuite la seule source de vérité : succès → `refunded` et
+  révocation atomique des entitlements ; échec → restauration de l'état
+  antérieur ; pending → accès conservé. Si une autre commande encaissée couvre
+  le même ouvrage pour le même client, l'entitlement est conservé et son lien
+  d'audit est transféré vers cette autre commande.
 
 ## Conséquences
 
@@ -34,9 +43,11 @@ redirection de succès. Le paiement est délivré "at least once".
 - L'ordre stocke son fingerprint, l'identifiant de Checkout, le Payment Intent
   et l'expiration. Un clic répété reprend la session ouverte ; une session
   expirée laisse une commande auditable et permet une nouvelle intention.
-- L'admin ne peut pas simuler un paiement ou un remboursement localement. Un
-  remboursement ne sera affiché qu'après un workflow Stripe dédié et ses
-  webhooks.
+- L'admin ne peut pas simuler un paiement ou un remboursement localement. Il
+  peut uniquement demander un remboursement complet Stripe pour `paid` ou
+  `fulfilled`; l'UI indique explicitement qu'il est en attente jusqu'au webhook.
+  Une erreur/timeout Stripe ne déclenche pas de seconde demande ni de révocation
+  locale : la file de réconciliation signale une confirmation absente après 15 minutes.
 - Tests dédiés : doublon/rejeu de webhook, montant ou client incohérent, panier
   multi-onglet ciblé, quantité/rachat et concurrence d'intention.
 - Stripe CLI en local (`stripe listen`) pour tester de vraies charges signées.

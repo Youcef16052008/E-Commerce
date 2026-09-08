@@ -4,6 +4,7 @@ import {
   failCheckoutFromWebhook,
   fulfillPaidOrderFromWebhook,
 } from "../infrastructure/checkout-repo";
+import { handleStripeRefundWebhook } from "@/features/refunds/application/refund-webhook-service";
 
 /**
  * A Stripe event is acknowledged only after its idempotency record and the
@@ -18,6 +19,10 @@ export type WebhookResult =
   | { status: "already_settled"; orderId: string }
   | { status: "fulfilled"; orderId: string }
   | { status: "marked_failed"; orderId: string }
+  | { status: "ignored_unknown_refund" }
+  | { status: "refund_pending"; orderId: string }
+  | { status: "refund_succeeded"; orderId: string }
+  | { status: "refund_failed"; orderId: string }
   | { status: "unhandled" };
 
 /** Vérifie la signature et renvoie l'évènement parsé. Retourne null si invalide. */
@@ -117,6 +122,10 @@ export async function handleWebhook(event: Stripe.Event): Promise<WebhookResult>
     case "checkout.session.async_payment_failed":
     case "checkout.session.expired":
       return failFromSession(event, event.data.object as Stripe.Checkout.Session);
+    case "refund.created":
+    case "refund.updated":
+    case "refund.failed":
+      return handleStripeRefundWebhook(event);
     default:
       return { status: "unhandled" };
   }

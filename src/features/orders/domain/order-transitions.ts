@@ -3,7 +3,7 @@ import type { OrderStatus } from "@/features/checkout/domain/checkout-types";
 /**
  * Manual, operational transitions only.
  *
- * Payment states (`pending`, `paid`, `failed`, `refunded`) are facts supplied
+ * Payment states (`pending`, `paid`, `refund_pending`, `failed`, `refunded`) are facts supplied
  * by Stripe webhooks and refund workflows, never an admin dropdown. An operator
  * can only acknowledge that a paid digital order has been fulfilled.
  */
@@ -11,6 +11,7 @@ export const ORDER_TRANSITIONS: Record<OrderStatus, readonly OrderStatus[]> = {
   pending: [],
   paid: ["fulfilled"],
   fulfilled: [],
+  refund_pending: [],
   failed: [],
   refunded: [],
 };

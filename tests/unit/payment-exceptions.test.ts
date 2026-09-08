@@ -11,6 +11,8 @@ describe("payment exception summary", () => {
       PAID_ORDER_MISSING_PAYMENT_INTENT: 0,
       PAID_ORDER_MISSING_ENTITLEMENT: 0,
       EXPIRED_CHECKOUT_STILL_PENDING: 0,
+      REFUND_PENDING_MISSING_REQUEST: 0,
+      REFUND_CONFIRMATION_OVERDUE: 0,
     });
   });
 

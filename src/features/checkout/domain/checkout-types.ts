@@ -2,7 +2,8 @@
  * Types de domaine du checkout.
  * Le montant est toujours calculé côté serveur depuis le panier (et des prix en base).
  */
-export type OrderStatus = "pending" | "paid" | "fulfilled" | "failed" | "refunded";
+export type OrderStatus =
+  "pending" | "paid" | "fulfilled" | "refund_pending" | "failed" | "refunded";
 
 export interface CheckoutResult {
   /** URL de redirection vers Stripe Checkout */

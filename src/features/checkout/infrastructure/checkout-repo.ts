@@ -22,7 +22,7 @@ type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 export type PendingCheckoutOrder = {
   id: string;
-  status: "pending" | "paid" | "fulfilled" | "failed" | "refunded";
+  status: "pending" | "paid" | "fulfilled" | "refund_pending" | "failed" | "refunded";
   stripeCheckoutSessionId: string | null;
   checkoutExpiresAt: Date | null;
   created: boolean;

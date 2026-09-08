@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { viewAllOrders } from "@/features/admin/application/admin-order-service";
 import { OrderStatusSelect } from "@/features/admin/ui/order-status-select";
+import { RefundOrderButton } from "@/features/refunds/ui/refund-order-button";
 import { formatPrice } from "@/shared/lib/format";
 import { orderStatusStyle } from "@/features/orders/domain/order-status";
 
@@ -91,6 +92,7 @@ export default async function AdminOrdersPage() {
                   </td>
                   <td className="px-4 py-3">
                     <OrderStatusSelect orderId={o.id} current={o.status} />
+                    <RefundOrderButton orderId={o.id} status={o.status} />
                   </td>
                 </tr>
               ))}
