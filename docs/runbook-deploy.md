@@ -150,6 +150,12 @@
    npm run stripe:reconcile -- --limit 25 --strict
    ```
 
+   Un seul séparateur `--` est requis par npm, y compris avec npm 12 : les arguments
+   suivants sont transmis au script. Ne pas ajouter un second `--` (`-- -- --strict`),
+   qui deviendrait un argument inconnu de la CLI. Ne pas lancer `npx tsx
+scripts/reconcile-stripe.ts` directement : ce chemin contourne le chargeur
+   obligatoire `.env.test`.
+
    La première examine uniquement les invariants Biblio. La seconde lit les Payment
    Intents/refunds Stripe test persistés et écrit seulement une trace non financière
    dans `stripe_sync_log`. Un résultat non vide doit être investigué dans Stripe et
