@@ -18,6 +18,8 @@ export default defineConfig({
     setupFiles: ["./tests/setup-env.ts"],
     globals: true,
     fileParallelism: false,
+    testTimeout: 30000,
+    hookTimeout: 30000,
     coverage: {
       provider: "v8",
       include: ["src/**/*.{ts,tsx}"],

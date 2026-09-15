@@ -145,7 +145,7 @@ describe.skipIf(!hasDatabase)("Bibliothèque (intégration)", () => {
     if (!res.ok) expect(res.error.code).toBe("FILE_NOT_AVAILABLE");
   });
 
-  it.skipIf(!storageConfigured)(
+  it.skipIf(storageConfigured)(
     "refuse le téléchargement si le stockage n'est pas configuré (STORAGE_NOT_CONFIGURED)",
     async () => {
       const res = await createDownloadLink(buyerId, productWithFileId);
