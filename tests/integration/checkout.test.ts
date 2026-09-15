@@ -84,16 +84,13 @@ describe.skipIf(!hasDatabase)("createCheckout (intégration)", () => {
     expect(rows).toHaveLength(0);
   });
 
-  it("panier multi-devises → MIXED_CURRENCY (L-2 : la règle est forcée, pas supposée)", async () => {
-    const usd = await seedProduct(200, "usd");
-    const eur = await seedProduct(200, "eur");
-    await addToCart(usd);
-    await addToCart(eur);
-
-    const res = await createCheckout(userId);
-    expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error.code).toBe("MIXED_CURRENCY");
-    // aucune commande créée : le refus précède la création
+  it("refuse une devise étrangère au niveau PostgreSQL (boutique USD mono-devise)", async () => {
+    // La contrainte SQL rend un panier multi-devise impossible à persister. La
+    // règle MIXED_CURRENCY reste défensive dans le service pour les données
+    // historiques, mais ce test couvre la frontière réellement atteignable.
+    // Drizzle wraps the PostgreSQL constraint name in `cause`, so assert the
+    // stable query failure rather than coupling this test to its error wrapper.
+    await expect(seedProduct(200, "eur")).rejects.toThrow("Failed query");
     const rows = await db.select().from(orders).where(eq(orders.userId, userId));
     expect(rows).toHaveLength(0);
   });
