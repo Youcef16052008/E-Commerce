@@ -85,7 +85,7 @@ describe.skipIf(!hasDatabase)("Bibliothèque (intégration)", () => {
       userId: buyerId,
       status: "paid",
       totalInCents: 200,
-      currency: "eur",
+      currency: "usd",
       paidAt: new Date(),
     });
 
