@@ -43,6 +43,15 @@ export function OrderStatusSelect({ orderId, current }: { orderId: string; curre
     }
   }
 
+  const transitions = allowedTransitions(current);
+  if (transitions.length === 0) {
+    return (
+      <span className="text-sm text-neutral-600" title="Statut de paiement géré par Stripe">
+        {ORDER_STATUS_LABELS[current]}
+      </span>
+    );
+  }
+
   return (
     <div className="flex flex-col items-start gap-1">
       <select
@@ -57,7 +66,7 @@ export function OrderStatusSelect({ orderId, current }: { orderId: string; curre
         // sont proposées — l'API reste la source de vérité.
         aria-label={`Statut de la commande ${orderId.slice(0, 8)}`}
       >
-        {[current, ...allowedTransitions(current)].map((s) => (
+        {[current, ...transitions].map((s) => (
           <option key={s} value={s}>
             {ORDER_STATUS_LABELS[s]}
           </option>

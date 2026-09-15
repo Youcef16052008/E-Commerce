@@ -2,8 +2,9 @@
  * Domaine — statistiques du tableau de bord admin (Slice 8).
  *
  * Règle métier centrale : le revenu cumule UNIQUEMENT les commandes dont le
- * statut est `paid` ou `fulfilled`. Les commandes `pending`, `failed` et
- * `refunded` n'apportent JAMAIS au revenu (elles peuvent en revanche
+ * statut est `paid`, `fulfilled` ou `refund_pending` : l'argent reste acquis
+ * tant que Stripe n'a pas confirmé le remboursement. Les commandes `pending`,
+ * `failed` et `refunded` n'apportent JAMAIS au revenu (elles peuvent en revanche
  * apparaître dans le compteur total et la répartition par statut).
  *
  * Tous les types ici sont des DTO purs (aucun `any`, aucune dépendance BDD) ;
@@ -16,20 +17,25 @@ export const ADMIN_ORDER_STATUSES: readonly OrderStatus[] = [
   "pending",
   "paid",
   "fulfilled",
+  "refund_pending",
   "failed",
   "refunded",
 ];
 
-/** Statuts qui comptent dans le revenu (jamais pending/failed/refunded). */
-export const REVENUE_ORDER_STATUSES: readonly OrderStatus[] = ["paid", "fulfilled"];
+/** Statuts qui comptent dans le revenu tant que Stripe n'a pas confirmé un remboursement. */
+export const REVENUE_ORDER_STATUSES: readonly OrderStatus[] = [
+  "paid",
+  "fulfilled",
+  "refund_pending",
+];
 
 /** Nombre de dernières commandes affichées sur le tableau de bord. */
 export const RECENT_ORDERS_LIMIT = 5;
 
-/** Nombre de top produits affichés (par unités vendues, paid/fulfilled). */
+/** Nombre de top produits affichés (par unités encaissées, remboursement en cours inclus). */
 export const TOP_PRODUCTS_LIMIT = 5;
 
-/** Vrai si ce statut alimente le revenu (paid + fulfilled uniquement). */
+/** Vrai si ce statut alimente le revenu jusqu'à une confirmation Stripe de remboursement. */
 export function isRevenueStatus(status: OrderStatus): boolean {
   return REVENUE_ORDER_STATUSES.includes(status);
 }
@@ -80,7 +86,8 @@ export interface AdminTopProduct {
 
 /**
  * Chiffres du tableau de bord admin — TOUS issus de la BDD (zéro hardcode).
- * `revenueInCents` / `paidOrdersCount` ne comptent que paid + fulfilled.
+ * `revenueInCents` / `paidOrdersCount` comptent paid + fulfilled + refund_pending
+ * jusqu'à la confirmation Stripe qui rend le remboursement définitif.
  */
 export interface AdminStats {
   productsTotal: number;

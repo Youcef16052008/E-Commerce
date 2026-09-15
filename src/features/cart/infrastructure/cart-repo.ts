@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { db } from "@/server/db";
-import { cartItems, products } from "@/server/db/schema";
+import { cartItems, entitlements, products } from "@/server/db/schema";
 import type { CartItemView, CartSummary } from "../domain/cart-types";
 
 /**
@@ -49,8 +49,8 @@ export async function getCart(userId: string): Promise<CartSummary> {
 }
 
 /**
- * Ajoute un produit au panier, avec plafond de quantité par ligne.
- * Renvoie la nouvelle quantité totale de la ligne.
+ * Ajoute un produit au panier. Une ligne correspond toujours à une seule
+ * licence personnelle ; `maxQuantity` is kept explicit at the service boundary.
  */
 export async function upsertCartItem(
   userId: string,
@@ -95,6 +95,17 @@ export async function removeCartItem(userId: string, productId: string) {
 
 export async function clearCart(userId: string) {
   await db.delete(cartItems).where(eq(cartItems.userId, userId));
+}
+
+/** True when the user already owns the personal licence for this book. */
+export async function userOwnsProduct(userId: string, productId: string) {
+  const rows = await db
+    .select({ productId: entitlements.productId })
+    .from(entitlements)
+    .where(and(eq(entitlements.userId, userId), eq(entitlements.productId, productId)))
+    .limit(1);
+
+  return rows.length > 0;
 }
 
 /** Vérifie qu'un produit existe et est publié. */

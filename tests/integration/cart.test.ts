@@ -38,19 +38,19 @@ describe.skipIf(!hasDatabase)("Panier (intégration)", () => {
     await db.delete(user).where(eq(user.email, email));
   });
 
-  it("ajoute un produit et calcule le total serveur", async () => {
-    const res = await addToCart(userId, { productId, quantity: 2 });
+  it("ajoute une licence personnelle et calcule le total serveur", async () => {
+    const res = await addToCart(userId, { productId, quantity: 1 });
     expect(res).toEqual({ ok: true });
 
     const cart = await viewCart(userId);
-    expect(cart.totalQuantity).toBe(2);
+    expect(cart.totalQuantity).toBe(1);
     const line = cart.items.find((i) => i.productId === productId);
     expect(line).toBeDefined();
-    expect(line!.lineTotalInCents).toBe(line!.unitPriceInCents * 2);
+    expect(line!.lineTotalInCents).toBe(line!.unitPriceInCents);
   });
 
   it("rejette une quantité hors bornes", async () => {
-    const res = await addToCart(userId, { productId, quantity: 999 });
+    const res = await addToCart(userId, { productId, quantity: 2 });
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.error.code).toBe("INVALID_QUANTITY");
   });

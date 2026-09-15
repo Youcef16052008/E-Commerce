@@ -4,9 +4,9 @@
  * Un `CartItemView` est la ligne enrichie (produit + montant calculé côté serveur).
  */
 
-/** Bornes de quantité appliquées par ligne (partagées côté client et serveur). */
+/** Une ligne représente une licence personnelle, non transférable (quantité fixe). */
 export const MIN_QUANTITY = 1;
-export const MAX_QUANTITY = 10;
+export const MAX_QUANTITY = 1;
 
 export interface CartItemView {
   productId: string;
@@ -33,5 +33,6 @@ export interface CartSummary {
 export type CartError =
   | { code: "UNAUTHORIZED" }
   | { code: "PRODUCT_NOT_FOUND" }
+  | { code: "ALREADY_OWNED" }
   | { code: "INVALID_QUANTITY" }
   | { code: "PRODUCT_NOT_PUBLISHED" };

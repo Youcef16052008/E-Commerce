@@ -4,7 +4,8 @@ import { updateOrderStatus } from "@/features/admin/application/admin-order-serv
 
 /**
  * PATCH /api/admin/orders/[id]/status — change le statut d'une commande.
- * Corps : `{ "status": "pending"|"paid"|"fulfilled"|"failed"|"refunded" }`.
+ * Corps accepté : `{ "status": "fulfilled" }` pour une commande déjà payée.
+ * Les statuts de paiement/remboursement sont exclusivement pilotés par Stripe.
  * Protégé : admin uniquement.
  */
 export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {

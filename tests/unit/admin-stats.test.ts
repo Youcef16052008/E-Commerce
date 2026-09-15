@@ -23,16 +23,23 @@ import { GET } from "@/app/api/admin/stats/route";
 
 /**
  * Tests unitaires du domaine stats admin (Slice 8) — fonctions pures,
- * aucune BDD. La règle métier critique : le revenu = paid + fulfilled
- * UNIQUEMENT (jamais pending/failed/refunded).
+ * aucune BDD. La règle métier : le revenu = paid + fulfilled + refund_pending
+ * jusqu'à la confirmation Stripe (jamais pending/failed/refunded).
  */
 describe("domaine stats admin", () => {
-  it("expose les 5 statuts de commande, dans l'ordre attendu", () => {
-    expect(ADMIN_ORDER_STATUSES).toEqual(["pending", "paid", "fulfilled", "failed", "refunded"]);
+  it("expose les 6 statuts de commande, dans l'ordre attendu", () => {
+    expect(ADMIN_ORDER_STATUSES).toEqual([
+      "pending",
+      "paid",
+      "fulfilled",
+      "refund_pending",
+      "failed",
+      "refunded",
+    ]);
   });
 
-  it("le revenu ne compte que paid et fulfilled", () => {
-    expect(REVENUE_ORDER_STATUSES).toEqual(["paid", "fulfilled"]);
+  it("le revenu conserve refund_pending jusqu’à la confirmation Stripe", () => {
+    expect(REVENUE_ORDER_STATUSES).toEqual(["paid", "fulfilled", "refund_pending"]);
     for (const status of ADMIN_ORDER_STATUSES) {
       expect(isRevenueStatus(status)).toBe(REVENUE_ORDER_STATUSES.includes(status));
     }
@@ -44,6 +51,7 @@ describe("domaine stats admin", () => {
     expect(isRevenueStatus("refunded")).toBe(false);
     expect(isRevenueStatus("paid")).toBe(true);
     expect(isRevenueStatus("fulfilled")).toBe(true);
+    expect(isRevenueStatus("refund_pending")).toBe(true);
   });
 
   it("initialise la répartition par statut à zéro pour tous les statuts", () => {
@@ -63,6 +71,7 @@ describe("domaine stats admin", () => {
       pending: 0,
       paid: 3,
       fulfilled: 0,
+      refund_pending: 0,
       failed: 0,
       refunded: 1,
     });
@@ -82,9 +91,14 @@ describe("domaine stats admin", () => {
       { status: "paid", count: 1 },
     ]);
     expect(record.paid).toBe(1);
-    expect(record.paid + record.pending + record.fulfilled + record.failed + record.refunded).toBe(
-      1,
-    );
+    expect(
+      record.paid +
+        record.pending +
+        record.fulfilled +
+        record.refund_pending +
+        record.failed +
+        record.refunded,
+    ).toBe(1);
   });
 
   it("borne l'affichage à 5 dernières commandes et 5 top produits", () => {
@@ -143,7 +157,14 @@ describe("GET /api/admin/stats — garde requireAdmin", () => {
       productsPublished: 8,
       productsDraft: 2,
       ordersTotal: 3,
-      ordersByStatus: { pending: 1, paid: 1, fulfilled: 1, failed: 0, refunded: 0 },
+      ordersByStatus: {
+        pending: 1,
+        paid: 1,
+        fulfilled: 1,
+        refund_pending: 0,
+        failed: 0,
+        refunded: 0,
+      },
       revenueInCents: 250,
       currency: "usd",
       paidOrdersCount: 2,
@@ -155,6 +176,7 @@ describe("GET /api/admin/stats — garde requireAdmin", () => {
         pending: "En attente de paiement",
         paid: "Payée",
         fulfilled: "Livrée",
+        refund_pending: "Remboursement en cours",
         failed: "Échec du paiement",
         refunded: "Remboursée",
       },

@@ -13,6 +13,10 @@ import { getStripe } from "@/server/payments/stripe";
  * l'import du module — verrouillée au premier import, impossible à changer
  * sans recharger le processus.
  */
+export async function getCheckoutSession(sessionId: string) {
+  return getStripe().checkout.sessions.retrieve(sessionId);
+}
+
 export async function createCheckoutSession(params: {
   orderId: string;
   userId: string;
@@ -34,6 +38,15 @@ export async function createCheckoutSession(params: {
       metadata: {
         orderId: params.orderId,
         userId: params.userId,
+      },
+      // Checkout Session metadata is not automatically copied to its Payment
+      // Intent or Charge. Persist it there too for Stripe-side investigations
+      // and safe remote reconciliation without searching all sessions.
+      payment_intent_data: {
+        metadata: {
+          orderId: params.orderId,
+          userId: params.userId,
+        },
       },
       line_items: params.items.map((it) => ({
         quantity: it.quantity,

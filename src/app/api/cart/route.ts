@@ -31,7 +31,9 @@ export async function POST(request: NextRequest) {
         ? 400
         : result.error.code === "PRODUCT_NOT_FOUND"
           ? 404
-          : 400;
+          : result.error.code === "ALREADY_OWNED"
+            ? 409
+            : 400;
     return NextResponse.json({ error: result.error.code }, { status });
   }
 

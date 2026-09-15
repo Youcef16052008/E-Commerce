@@ -60,6 +60,7 @@ export type AdminErrorCode =
   | "NOT_FOUND"
   | "SLUG_TAKEN"
   | "PRODUCT_REFERENCED"
+  | "PAYMENT_STATUS_MANAGED_BY_STRIPE"
   | "INVALID_STATE";
 
 export type AdminError = {

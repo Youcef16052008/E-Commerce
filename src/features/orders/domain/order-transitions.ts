@@ -1,23 +1,17 @@
-/**
- * Machine à états des statuts de commande (registre L-1).
- *
- * Transitions autorisées (hors webhook, qui a ses propres gardes au dépôt) :
- *
- *   pending   → paid, failed   (confirmation manuelle / échec constaté)
- *   paid      → fulfilled, refunded
- *   fulfilled → refunded
- *   failed    → (terminal — un nouvel achat crée une nouvelle commande)
- *   refunded  → (terminal)
- *
- * Tout le reste est refusé (y compris la « transition » identité) : on n'édite
- * pas l'historique, on crée des commandes.
- */
 import type { OrderStatus } from "@/features/checkout/domain/checkout-types";
 
+/**
+ * Manual, operational transitions only.
+ *
+ * Payment states (`pending`, `paid`, `refund_pending`, `failed`, `refunded`) are facts supplied
+ * by Stripe webhooks and refund workflows, never an admin dropdown. An operator
+ * can only acknowledge that a paid digital order has been fulfilled.
+ */
 export const ORDER_TRANSITIONS: Record<OrderStatus, readonly OrderStatus[]> = {
-  pending: ["paid", "failed"],
-  paid: ["fulfilled", "refunded"],
-  fulfilled: ["refunded"],
+  pending: [],
+  paid: ["fulfilled"],
+  fulfilled: [],
+  refund_pending: [],
   failed: [],
   refunded: [],
 };

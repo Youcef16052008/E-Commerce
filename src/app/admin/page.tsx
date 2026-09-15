@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
  * Tableau de bord admin (Slice 8) : chiffres réels de la BDD.
  * - Cartes : produits, commandes (+ répartition par statut), revenu USD, clients.
  * - Dernières commandes (5) + top produits (5 par unités vendues).
- * - Revenu = commandes `paid` + `fulfilled` uniquement (règle métier domaine).
+ * - Revenu = commandes encaissées ; `refund_pending` reste compté jusqu'à la confirmation Stripe.
  */
 export default async function AdminHomePage() {
   const stats = await viewAdminStats();
@@ -61,9 +61,8 @@ export default async function AdminHomePage() {
             {stats.revenueFormatted}
           </p>
           <p className="mt-1 text-sm text-neutral-600">
-            {stats.paidOrdersCount} commande{stats.paidOrdersCount > 1 ? "s" : ""} payée
-            {stats.paidOrdersCount > 1 ? "s" : ""} ou livrée
-            {stats.paidOrdersCount > 1 ? "s" : ""}
+            {stats.paidOrdersCount} commande{stats.paidOrdersCount > 1 ? "s" : ""} encaissée
+            {stats.paidOrdersCount > 1 ? "s" : ""} (remboursement en cours inclus)
           </p>
         </div>
 
@@ -151,7 +150,7 @@ export default async function AdminHomePage() {
           <div className="border-b border-neutral-200 px-5 py-4">
             <h2 className="text-lg font-semibold">Meilleures ventes</h2>
             <p className="text-xs text-neutral-500">
-              Par unités vendues (commandes payées ou livrées)
+              Par unités encaissées (remboursements en cours inclus)
             </p>
           </div>
           {stats.topProducts.length === 0 ? (

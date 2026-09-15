@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import type Stripe from "stripe";
 import { getStripe } from "@/server/payments/stripe";
+import { getSessionUser } from "@/features/authentication/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -21,15 +23,28 @@ export default async function CheckoutSuccessPage({
     redirect("/cart");
   }
 
-  let status: string | null = null;
-  try {
-    const session = await getStripe().checkout.sessions.retrieve(session_id);
-    status = session.payment_status;
-  } catch {
-    // session introuvable / clé absente → on affiche un message neutre
+  const user = await getSessionUser();
+  if (!user) {
+    redirect(
+      `/auth/sign-in?next=${encodeURIComponent(`/checkout/success?session_id=${session_id}`)}`,
+    );
   }
 
-  const isPaid = status === "paid";
+  let session: Stripe.Checkout.Session | null = null;
+  try {
+    session = await getStripe().checkout.sessions.retrieve(session_id);
+  } catch {
+    // Session introuvable / Stripe indisponible : message neutre, sans détail.
+  }
+
+  // Keep `redirect` outside the try/catch: Next.js implements it by throwing.
+  // Never expose the state of another customer's Checkout session merely because
+  // its id was pasted in a URL.
+  if (session && session.metadata?.userId !== user.id) {
+    redirect("/orders");
+  }
+
+  const isPaid = session?.payment_status === "paid";
 
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center px-6 py-16 text-center">
@@ -39,7 +54,7 @@ export default async function CheckoutSuccessPage({
       <h1 className="mt-4 text-2xl font-semibold">Merci !</h1>
       <p className="mt-3 text-neutral-600">
         {isPaid
-          ? "Votre commande est confirmée. Vos ouvrages apparaissent dans votre bibliothèque."
+          ? "Votre paiement a été reçu. Nous finalisons l’ajout de vos ouvrages à votre bibliothèque."
           : "Votre paiement est en cours de vérification par notre serveur. Cela ne prend qu'un instant."}
       </p>
       <div className="mt-8 flex gap-3">

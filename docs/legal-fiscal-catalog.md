@@ -1,88 +1,121 @@
-# Prérequis juridiques, fiscaux et droits catalogue — Biblio
+# Préconditions juridiques, fiscales et de catalogue — Biblio
 
-## 1. Statut juridique de l’exploitant
+**Statut : bloquant avant toute clé Stripe live.** Ce document est une checklist
+opérationnelle, pas un avis juridique, fiscal ou comptable. L’exploitant doit faire
+valider les pays effectivement servis et son statut par des professionnels compétents.
+Biblio reste techniquement limité à Stripe **test** à ce stade.
 
-- **Forme sociale** : micro-entreprise, EURL, SASU, etc. — choisir avant la
-  première vente.
-- ** Mentions légales** sur le site : dénomination, adresse du siège, RCS/SIRET,
-  responsable de publication, email de contact, hébergeur.
-- **CGV / CGU** : ventes de biens numériques (e-books) ; distance = contrat
-  conclu par « clic » sur Stripe Checkout.
-- **Droit de rétractation** : pour les contenus numériques, le droit de
-  rétractation **peut être exclu** si l’acheteur a expressément accepté la
-  livraison immédiate (art. L221-28 Code consommation). À afficher clairement
-  avant paiement.
-- **Politique de remboursement** : définir les cas de remboursement (défaut de
-  téléchargement, contenu non conforme) et la procédure. Ici : géré via Stripe
-  Refunds + webhook `charge.refunded`.
+## 1. Décisions que le propriétaire doit prendre par écrit
 
-## 2. Fiscalité
+Avant toute vente, consigner dans un registre interne :
 
-- **TVA** :
-  - Vendeur établi dans l’UE → TVA selon règles du pays du vendeur (ou OSS si
-    seuils dépassés).
-  - Vendeur hors UE → ventes hors TVA (TVA due par l’acheteur — auto-liquidation
-    B2B, ou TVA perçue par la marketplace selon les seuils locaux).
-- **Taxation automatique Stripe** : pour activer la collecte de taxe/TVA au
-  checkout, il faut :
-  - activer **Stripe Tax** dans le Dashboard ;
-  - renseigner l’adresse de l’acheteur (Stripe la collecte via le Checkout) ;
-  - ajouter `automatic_tax[enabled]=true` dans `createCheckoutSession` et
-    fournir `customer_details` (email + adresse).
-  - En mode test, Stripe Tax fonctionne avec des adresses de test spécifiques.
-- **Comptabilité** : exporter les événements Stripe (paiements, refunds) et
-  rapprocher avec les commandes en base. Service de réconciliation inclus
-  (`stripe-reconcile.ts`) + table `stripe_sync_log`.
+1. l’entité qui vend (personne/forme, adresse, immatriculation, responsable et contact
+   support) ;
+2. le pays d’établissement, les territoires de vente et les devises réellement servis ;
+3. le modèle commercial (vente d’une licence personnelle, durée de l’accès, appareils,
+   mises à jour, règles après remboursement) ;
+4. le rôle de Stripe et les prestataires qui traitent des données ;
+5. le délai de réponse support et les règles applicables aux téléchargements défaillants,
+   contenus indisponibles, remboursements et fraude.
 
-## 3. Droits catalogue
+Ne pas afficher « disponible dans le monde entier » tant que les obligations par pays,
+la fiscalité et les moyens de paiement n’ont pas été validés.
 
-- **Provenance** : chaque produit en base possède `source`, `source_id`,
-  `license` (champs ajoutés par migration 0002).
-- **Domaine public** : Project Gutenberg (US) → œuvres sans copyright aux US,
-  mais **vérifier les droits dans le pays de commercialisation** (UE : délai
-  différent, droits des traducteurs/illustrateurs).
-- **Œuvres sous licence** : si des œuvres sous licence CC BY / CC BY-SA sont
-  vendues :
-  - conserver l’attribution (auteur original, titre, licence) ;
-  - ne pas ajouter de restrictions supplémentaires.
-- **Contenu original** : si le catalogue inclut des œuvres originales,
-  enregistrer les contrats d’auteur / cession de droits.
-- **Sécurité juridique** :
-  - ne jamais vendre du contenu dont les droits ne sont pas vérifiés ;
-  - ne pas utiliser Z-Library / Anna’s Archive / LibGen (contenus piratés) ;
-  - garder une trace des licences en base (`products.license`).
+## 2. Si l’activité ou le contrat relève de l’Algérie
 
-## 4. Conformité paiements (Stripe)
+Le lieu exact de l’exploitant reste à confirmer. Lorsque la loi algérienne s’applique,
+la loi n° 18-05 du 10 mai 2018 relative au commerce électronique doit être relue avec
+un conseil local : elle prévoit notamment des conditions d’exercice, une offre et un
+contrat électroniques, un accusé de réception, une copie du contrat et une facture.
+La source primaire est le Journal officiel :
 
-- **KYC** : compléter le profil Stripe (identité, activité, IBAN) pour passer en
-  mode live.
-- **3D Secure** : activé par défaut sur Stripe Checkout (PSD2 SCA pour l’UE).
-- **Webhooks signés** : `STRIPE_WEBHOOK_SECRET` obligatoire en prod.
-- **Idempotence** : table `stripe_events` + `Idempotency-Key` sur les sessions
-  Checkout.
-- **Refunds** :
-  - gérés côté serveur uniquement ;
-  - enregistrés dans la table `refunds` (migration 0005) ;
-  - webhook `charge.refunded` → mise à jour atomique du statut commande.
+- [Loi n° 18-05 — Journal officiel / ministère](https://www.mpt.gov.dz/wp-content/uploads/2023/11/Loi-n%C2%B0-18-05-du-10-mai-2018.-fr_0_0.pdf)
+- [Copie publiée par l’ARPCE](https://www.arpce.dz/fr/file/l7w4c3)
 
-## 5. Vie privée & données
+La même loi contient des contraintes spécifiques d’inscription, de site/domaine et de
+paiement lorsqu’elles sont applicables. Il serait imprudent de déduire de ce document
+qu’un compte Stripe, une devise USD ou l’hébergement actuel les satisfont. Vérifier en
+particulier la compatibilité du prestataire de paiement, de la domiciliation des fonds,
+du nom de domaine et de l’hébergement avant toute ouverture locale.
 
-- **RGPD** si l’UE :
-  - consentement pour les cookies / emails ;
-  - droit d’accès / suppression (Better Auth permet de supprimer le compte) ;
-  - mentionner le sous-traitant Stripe (payment processor).
-- **Hébergement** : Neon (UE/US selon région choisie), Vercel (CDN global).
-- **Données sensibles** : secrets côté serveur uniquement, `.env*` non commité.
+## 3. Clients UE/EEE : contenu numérique et rétractation
 
-## 6. Checklist pré-ouverture
+Si Biblio cible des consommateurs de l’UE/EEE, un e-book téléchargé est du contenu
+numérique non fourni sur support matériel. La fin du droit de rétractation au début de
+la fourniture dépend notamment du consentement préalable exprès du client, de sa
+reconnaissance de la perte du droit et de la confirmation du contrat par le vendeur.
+Cette exception s’interprète strictement ; une simple clause cachée dans les CGV ne
+suffit pas.
 
-- [ ] Statut juridique déclaré + mentions légales en pied de page.
-- [ ] CGV / politique de remboursement publiées.
-- [ ] TVA configurée (Stripe Tax + déclarations nationales).
-- [ ] Droits catalogue vérifiés (provenance + licence par produit).
-- [ ] Stripe KYC complété + compte vérifié pour le mode live.
-- [ ] Webhooks configurés (7 événements) + testés en mode test.
-- [ ] Réconciliation Stripe / BDD validée (`npm run db:migrate` + test
-       `refunds.test.ts`).
-- [ ] Sauvegardes base / stockage activées (Neon + R2).
-- [ ] Politique de confidentialité + gestion des consentements publiées.
+Référence officielle : [communication de la Commission européenne sur la directive
+2011/83/UE, section 5.7](<https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:52021XC1229(04)>).
+
+**Écart produit actuel :** avant Checkout, implémenter une case non pré-cochée,
+enregistrer la version du texte, l’horodatage et la preuve de consentement, puis envoyer
+la confirmation contractuelle/reçu. Ne pas activer le téléchargement immédiat en se
+fondant sur un consentement non démontrable.
+
+## 4. Fiscalité, prix et preuve de vente
+
+- Déterminer avec un comptable les taxes indirectes, déclarations, seuils et règles de
+  facturation de chaque territoire servi. Stripe Tax peut calculer des taxes, mais ne
+  décide pas de l’obligation de s’immatriculer ni ne remplace les déclarations.
+- Stripe indique que `automatic_tax`, les tax codes, le comportement de taxe et les
+  enregistrements actifs sont nécessaires à une collecte automatisée :
+  [documentation Stripe Tax](https://docs.stripe.com/payments/advanced/tax).
+- Les livres numériques peuvent relever de taux différents selon le pays et la
+  qualification exacte de l’offre. Ne pas déduire un taux d’un autre produit.
+- Fixer une politique de prix TTC/HT cohérente et stocker, avant le lancement, les
+  snapshots nécessaires au reçu/facture : sous-total, taxe, total, devise, identité du
+  vendeur, numéro du document et date.
+- Un remboursement doit être reflété dans la comptabilité et, si Stripe Tax/API Tax est
+  utilisé, dans le mécanisme de correction fiscale approprié. Voir la
+  [documentation Stripe sur les annulations de transactions fiscales](https://docs.stripe.com/tax/custom).
+
+**Écart produit actuel :** Biblio est volontairement mono-devise USD et ne stocke pas
+encore le détail taxe/facture. Cette limite empêche de déclarer la fiscalité prête pour le
+live.
+
+## 5. Catalogue, propriété intellectuelle et licences
+
+Pour chaque ouvrage publié ou importé, conserver hors du seul code source un dossier :
+
+- titulaire des droits/auteur/ayant droit, contrat ou source probante ;
+- territoires, langue, format, illustration, traduction, version de fichier et date de
+  vérification ;
+- licence, attribution obligatoire, date d’expiration éventuelle et personne responsable
+  de la revue ;
+- procédure de retrait/takedown et contact de notification.
+
+Project Gutenberg et le domaine public ne sont pas une autorisation mondiale de vendre
+une œuvre : une traduction, une couverture ou une juridiction différente peuvent créer
+des droits. Ne commercialiser aucun ouvrage tant que la chaîne de droits n’est pas
+vérifiée pour les territoires réellement servis.
+
+## 6. Protection des données et pages publiques à livrer
+
+Avant une bêta avec clients externes, publier et faire vérifier : mentions légales,
+politique de confidentialité, CGV, politique de remboursement, politique cookies si des
+traceurs non essentiels existent, politique copyright/takedown et accessibilité/contact.
+Documenter les sous-traitants, les finalités, durées de conservation, droits des
+personnes, mesures de sécurité et procédure d’incident selon les lois applicables.
+
+## 7. Porte de passage technique/ops
+
+La revue légale ne remplace pas le contrôle technique, et inversement. Avant live :
+
+- [ ] PostgreSQL de **test isolé** connecté via Arena/OAuth, migrations testées et
+      rollback/procédure de sauvegarde validés ;
+- [ ] Checkout, paiement, webhook, remboursement, accès et réconciliation Stripe test
+      exercés de bout en bout ;
+- [ ] les sept webhooks test configurés et l’alerte/rejeu documentés ;
+- [ ] `npm run payments:reconcile -- --strict` et
+      `npm run stripe:reconcile -- --strict` examinés sans écart non expliqué ;
+- [ ] politique de conservation des journaux `stripe_events` et `stripe_sync_log`
+      décidée ;
+- [ ] identité, droits, fiscalité, consentement et documents client validés ;
+- [ ] revue de lancement écrite autorisant explicitement la suppression du verrou
+      Stripe live.
+
+Tant qu’une case est ouverte, rester en Stripe test/staging et ne pas communiquer une
+ouverture commerciale.
