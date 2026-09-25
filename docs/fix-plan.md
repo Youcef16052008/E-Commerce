@@ -75,7 +75,10 @@ zero process debris, zero credentials on the front page.
       `build` (dummy env) · `docs:check` · `docs:check` in `ci.yml`.
 
 **Lot 1 DoD** — a newcomer sees ≤120 README lines and knows where truth lives;
-the demo admin password appears in exactly one file (`docs/local-dev.md`);
+the demo admin password is confined to its sanctioned locations —
+`docs/local-dev.md` (the only doc that prints it) plus the code defaults in
+`scripts/seed-admin.ts` and `tests/e2e/admin.spec.ts` — and never appears in
+either README;
 `npm run docs:check` is green locally and in CI.
 
 ## Lot 2 — Runtime alignment (small, now)
@@ -105,8 +108,12 @@ I prepare everything that doesn't need your accounts; you execute
 `docs/runbook-deploy.md` (7 steps) — **run it yourself; never paste credentials
 into chat.**
 
-- [ ] **L4.1** Me: deploy pre-flight checklist + smoke script
+- [x] **L4.1** Me: deploy pre-flight checklist + smoke script
       (catalogue → cart → checkout → library → download → admin).
+      Delivered `docs/deploy-preflight.md` + `scripts/smoke.ts`
+      (`npm run smoke`, `--strict` + `SMOKE_REQUIRE_*` gates); local run
+      2026-09-25: 15 passed · 0 failed · 1 skipped (checkout — no Stripe keys
+      in this sandbox; becomes a failure under `SMOKE_REQUIRE_STRIPE=1`).
 - [ ] **L4.2** You: runbook steps 1–7, Stripe test webhook → prod URL.
 - [ ] **L4.3** Me: live URL on README line 1, screenshots re-shot against prod,
       tag `v1.0.0`, e2e against preview.

@@ -46,6 +46,7 @@ npm run dev            # http://localhost:3000
 | `npm run import:gutenberg`                                     | Import public-domain catalogue (Gutendex)                     |
 | `npm run payments:reconcile` / `stripe:reconcile`              | Manual reconciliation CLIs                                    |
 | `npm run db:cleanup:tests`                                     | Clean test leftovers                                          |
+| `npm run smoke`                                                | HTTP smoke: catalogue → cart → checkout → library → admin     |
 
 ## Storage (local demo — MinIO)
 

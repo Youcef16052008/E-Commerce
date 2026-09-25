@@ -54,6 +54,7 @@ Local demo credentials, storage, imports and the full command table:
 | [`docs/product.md`](docs/product.md)                                                          | Problem, personas, user stories, scope                                    |
 | [`docs/architecture.md`](docs/architecture.md)                                                | Architecture, ERD, API contracts, folder tree                             |
 | [`docs/adr/`](docs/adr/)                                                                      | Decision records (framework, DB, auth, payments, deploy, storage, import) |
+| [`docs/deploy-preflight.md`](docs/deploy-preflight.md)                                        | Pre-flight gate + `npm run smoke` before/after each deploy                |
 | [`docs/runbook-deploy.md`](docs/runbook-deploy.md)                                            | Vercel + Neon + R2 deployment runbook                                     |
 | [`docs/accessibility.md`](docs/accessibility.md) · [`docs/lighthouse.md`](docs/lighthouse.md) | a11y audit · measured scores                                              |
 | [`docs/local-dev.md`](docs/local-dev.md)                                                      | Local setup, commands, MinIO, Gutenberg import                            |
