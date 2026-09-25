@@ -69,14 +69,24 @@ graph TB
 
 - **features/authentication** : Better Auth (email/password), sessions, RBAC.
 - **features/products** : catalogue, recherche, filtres, page produit (lecture publique).
-- **features/cart** : panier persistant (BDD), ajout/retrait/quantité.
-- **features/checkout** : création Stripe Checkout Session, gestion webhooks, idempotence.
-- **features/entitlements** : droits d'accès + génération d'URL signées (downloaded links).
+- **features/cart** : panier persistant (BDD), ajout/retrait, quantité strictement 1.
+- **features/checkout** : création Stripe Checkout Session, gestion webhooks, idempotence,
+  délivrance d'entitlements (transaction `stripe_events` → `paid` → grants → panier).
+- **features/library** : droits d'accès de l'utilisateur (entitlements), listing
+  bibliothèque, génération d'URL pré-signées (downloaded links). C'est le module
+  « entitlements » du domaine ; le dossier s'appelle `library/` car il porte aussi
+  la page et l'API `/api/me/library`.
 - **features/orders** : commandes, historique, statuts (machine à états des transitions).
-- **features/admin** : CRUD produits, dashboard, gestion commandes (rôle admin).
-- **shared/** : UI, config, types, lib (validation, erreurs typées).
+- **features/refunds** : réservation `refund_pending`, appel Stripe idempotent,
+  confirmation par webhook signé, révocation conditionnelle.
+- **features/catalog-import** : import Gutendex (Project Gutenberg) — mapper,
+  orchestrateur, dépôt ; licence et `source`/`source_id` enregistrées par produit.
+- **features/admin** : CRUD produits, dashboard, gestion commandes, exceptions de
+  paiement, réconciliation (rôle admin).
+- **shared/** : UI, config, types, lib (validation, erreurs typées) — aucun I/O.
 - **server/db** : schéma Drizzle + connexion + migrations.
-- **infra/storage** : adaptateur R2/S3 (liens pré-signés).
+- **server/payments** : passerelle Stripe (session, webhook, refunds).
+- **server/storage** : adaptateur R2/S3/MinIO (URLs pré-signées).
 
 ## 3. Modèle de données (ERD)
 
@@ -208,24 +218,43 @@ erDiagram
 
 ## 11. Structure de dossiers
 
+> Généré depuis l'arbre réel (`src/` au 2026-09-25) et **vérifié par
+> `npm run docs:check`** — un écart entre ce bloc et le disque casse la CI.
+
 ```
 src/
-├── app/                      # App Router (routes)
-├── features/
-│   ├── authentication/       # Better Auth, RBAC
-│   ├── products/             # catalogue, recherche
-│   ├── cart/                 # panier persistant
-│   ├── checkout/             # Stripe, webhooks, idempotence
-│   ├── entitlements/         # droits + téléchargements
-│   ├── orders/               # commandes
-│   └── admin/                # back-office
-├── shared/                   # ui, lib, config, types, utils
+├── app/                      # App Router : routes, layouts, pages (aucune règle métier)
+│   ├── admin/                # back-office (dashboard, produits, commandes, paiements)
+│   ├── api/                  # route handlers (auth, cart, checkout, products,
+│   │                         #   me/*, admin/*, webhooks/stripe, covers/gutenberg)
+│   ├── auth/                 # pages sign-in / sign-up
+│   ├── cart/ checkout/ library/ orders/   # pages boutique
+│   ├── products/             # catalogue + page produit
+│   └── error.tsx, layout.tsx, page.tsx
+├── features/                 # modules de capacité (domain/application/infrastructure/ui)
+│   ├── admin/                # CRUD, dashboard/stats, statuts, exceptions, réconciliation
+│   ├── authentication/       # Better Auth, sessions, RBAC
+│   ├── cart/                 # panier persistant (quantité = 1)
+│   ├── catalog-import/       # import Gutendex (licence + source/source_id)
+│   ├── checkout/             # sessions Stripe, webhooks, idempotence, fulfillment
+│   ├── library/              # entitlements : droits, bibliothèque, downloads
+│   ├── orders/               # commandes, historique, machine à états
+│   ├── products/             # catalogue public (lecture, recherche, filtres)
+│   └── refunds/              # remboursements Stripe (refund_pending → webhook)
 ├── server/
-│   ├── db/                   # Drizzle schéma + connexion
-│   └── storage/              # adaptateur R2/S3
-└── styles/
-tests/{unit,integration,e2e}
-docs/{architecture,adr,api}
+│   ├── db/                   # schéma Drizzle + connexion
+│   ├── payments/             # passerelle Stripe
+│   └── storage/              # adaptateur R2/S3/MinIO (pré-signé)
+└── shared/                   # ui, lib, config (aucun I/O)
+    ├── config/               # rôles, constantes partagées
+    ├── lib/                  # format, slugify
+    └── ui/                   # header, composants présentation
+tests/
+├── unit/ integration/ e2e/
+docs/
+├── adr/                      # décisions structurantes (001…007)
+├── reviews/                  # revues datées archivées (audit, durcissement…)
+└── architecture.md, product.md, local-dev.md, runbook-deploy.md, …
 ```
 
 ## 12. Décisions structurantes

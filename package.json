@@ -2,12 +2,16 @@
   "name": "biblio",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
+    "docs:check": "tsx scripts/check-docs.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",
@@ -29,6 +33,7 @@
     "seed:products": "tsx scripts/seed-products.ts",
     "seed:all": "npm run seed:admin && npm run seed:products",
     "db:cleanup:tests": "tsx scripts/cleanup-test-data.ts",
+    "smoke": "tsx scripts/smoke.ts",
     "books:generate": "tsx scripts/generate-books.ts",
     "books:validate": "python3 scripts/validate-books.py",
     "books:upload": "tsx scripts/upload-books.ts",
@@ -56,7 +61,7 @@
     "@playwright/test": "^1.62.1",
     "@stripe/mcp": "0.3.3",
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/node": "^24.13.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/yazl": "^3.3.1",

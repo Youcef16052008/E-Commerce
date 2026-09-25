@@ -14,7 +14,7 @@
   (R2 Free : 10 Go), compte Stripe (mode test).
 - Accès au repo GitHub `Youcef16052008/E-Commerce`.
 - **Aucun secret dans le code, aucune URL de push avec token** (cf.
-  `docs/project-state.md` — sécurité git).
+  `docs/local-dev.md` — sécurité git).
 
 ---
 
@@ -179,11 +179,14 @@ scripts/reconcile-stripe.ts` directement : ce chemin contourne le chargeur
 
 2. **Changer immédiatement** le mot de passe après la première connexion
    (meilleure pratique — le mot de passe généré a transité par terminal/env).
-3. Ne JAMAIS réutiliser le mot de passe démo `Bibli0-Admin!` en production.
+3. Ne JAMAIS réutiliser le mot de passe démo (voir `docs/local-dev.md`) en production.
 
 ## 6. Smoke checklist (post-deploy)
 
-À exécuter sur l'URL publique après le deploy `main` :
+1. **Automatisé d'abord** : `SMOKE_BASE_URL=https://<slug>.vercel.app … npm run smoke`
+   — contrat exact, variables et attentes dans `docs/deploy-preflight.md` §7.
+   Un échec ici bloque le déploiement avant toute vérification manuelle.
+2. **Visuel** — à exécuter sur l'URL publique après le deploy `main` :
 
 - [ ] `/` — accueil rendu (200), identité Biblio, lien catalogue.
 - [ ] Auth — sign-up → connecté (nom dans l'en-tête) → déconnexion →

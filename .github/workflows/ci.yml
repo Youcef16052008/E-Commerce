@@ -35,6 +35,12 @@ jobs:
           node-version: 24
           cache: npm
 
+      - name: Assert Node major matches @types/node target
+        run: |
+          major=$(node -p 'process.versions.node.split(".")[0]')
+          echo "runtime Node $major — target 24"
+          test "$major" = "24"
+
       - name: Install
         run: npm ci
 
@@ -46,6 +52,9 @@ jobs:
 
       - name: Typecheck
         run: npm run typecheck
+
+      - name: Docs ↔ source parity
+        run: npm run docs:check
 
       - name: Apply DB migrations
         run: npm run db:migrate

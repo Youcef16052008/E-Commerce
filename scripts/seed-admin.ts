@@ -17,7 +17,21 @@ import { auth } from "../src/features/authentication/lib/auth";
 
 const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL ?? "admin@biblio.test";
 const ADMIN_NAME = process.env.SEED_ADMIN_NAME ?? "Administrateur";
-const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD ?? "Bibli0-Admin!";
+
+// L1.10 (fix-plan D-09): no default password in production. The demo
+// password is a local-dev convenience only; NODE_ENV=production requires an
+// explicit SEED_ADMIN_PASSWORD and never echoes it.
+const IS_PRODUCTION = process.env.NODE_ENV === "production";
+const PASSWORD_FROM_ENV = process.env.SEED_ADMIN_PASSWORD;
+if (!PASSWORD_FROM_ENV && IS_PRODUCTION) {
+  console.error(
+    "✗ Refusing to seed an admin with the demo password in production.\n" +
+      "  Set SEED_ADMIN_PASSWORD to a strong unique value (and unset it from" +
+      " logs/shell history afterwards).",
+  );
+  process.exit(1);
+}
+const ADMIN_PASSWORD = PASSWORD_FROM_ENV ?? "Bibli0-Admin!";
 
 async function main() {
   const existing = await db.select().from(user).where(eq(user.email, ADMIN_EMAIL)).limit(1);
@@ -52,7 +66,8 @@ async function main() {
     throw new Error("Signup sans utilisateur en base");
   }
   await db.update(user).set({ role: "admin" }).where(eq(user.email, ADMIN_EMAIL));
-  console.log(`✓ Admin créé : ${ADMIN_EMAIL} (password: ${ADMIN_PASSWORD})`);
+  console.log(`✓ Admin créé : ${ADMIN_EMAIL}`);
+  if (!IS_PRODUCTION) console.log(`  (password used: ${ADMIN_PASSWORD})`);
   console.log("⚠️ Changez ce mot de passe après la première connexion.");
 }
 
