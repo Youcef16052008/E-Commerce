@@ -1,169 +1,73 @@
-# Biblio — Librairie numérique
+# Biblio
 
-> Boutique en ligne d'e-books / licences numériques : catalogue, panier, paiement Stripe
-> (mode test), bibliothèque personnelle et back-office administrateur.
+Digital bookshop — ebooks & licences: catalogue, cart, Stripe checkout (test
+mode), personal library with presigned downloads, and an admin back office.
 
-**État : en construction.** Fondations (0), Authentication (1), Catalogue public (2),
-Panier (3), Checkout Stripe (4), Bibliothèque & téléchargements (5), Commandes (6),
-Admin (7), **Dashboard admin / stats (8)** et **Qualité & accessibilité (9)** en place.
-Prochaine : exécution du déploiement (10) — runbook prêt, credentials à fournir.
+**Status:** slices 0–9 done and CI-green; **not yet deployed** — see
+[`STATUS.md`](STATUS.md) · work queue: [`docs/fix-plan.md`](docs/fix-plan.md) ·
+[open the repository](https://github.com/Youcef16052008/E-Commerce)
 
-## Credentials de démonstration (dev local)
+## Screenshots
 
-| Rôle  | Email               | Mot de passe    |
-| ----- | ------------------- | --------------- |
-| Admin | `admin@biblio.test` | `Bibli0-Admin!` |
+|                                                            |                                                  |
+| :--------------------------------------------------------: | :----------------------------------------------: |
+|          ![Accueil](docs/screenshots/01-home.png)          | ![Catalogue](docs/screenshots/02-catalogue.png)  |
+|                           _Home_                           |          _Catalogue (12 seeded titles)_          |
+|     ![Fiche produit](docs/screenshots/03-product.png)      |     ![Panier](docs/screenshots/05-cart.png)      |
+|                       _Product page_                       |       _Cart — Stripe checkout, test mode_        |
+| ![Administration](docs/screenshots/06-admin-dashboard.png) | ![Bibliothèque](docs/screenshots/07-library.png) |
+|            _Admin dashboard (live DB figures)_             |                _Personal library_                |
 
-> Créez-le avec `npm run seed:admin` (changez le mot de passe en production).
+## Why this project is interesting
 
-## Administration
+- **Stripe webhook as the single source of truth** — raw-body signature check,
+  two-layer idempotency (`Idempotency-Key` + unique `stripe_events`), and the
+  event record → `paid` → entitlements → cart clearing committed in **one
+  transaction**.
+- **Refunds designed for uncertainty** — a durable `refund_pending` reservation
+  before calling Stripe, confirmation only via signed webhook, conditional
+  revocation (ADR-004). Payment statuses are Stripe's: the admin's only manual
+  transition is `paid → fulfilled`.
+- **Files never pass through the app** — entitlement check first, then a
+  15-minute presigned SigV4 URL. MinIO locally, Cloudflare R2 in production,
+  same code, env-only switch (ADR-006).
+- **Real CI** — Postgres 17 service → migrate → seed → unit/integration →
+  build → Playwright e2e, on Node 24. `npm run docs:check` fails the build if
+  the architecture doc drifts from the filesystem.
 
-Espace back-office réservé au rôle `admin` (`/admin`) :
-
-- **Tableau de bord** (`/admin`) — chiffres **réels** de la BDD : produits
-  (total / publiés / brouillons), commandes (total + répartition par statut),
-  **revenu USD** (commandes `paid` + `fulfilled` **uniquement** — jamais
-  pending/failed/refunded), clients, 5 dernières commandes et top 5 des
-  meilleures ventes. Agrégations SQL Drizzle (zéro N+1, zéro chiffre hardcodé).
-- **Produits** (`/admin/products`) — CRUD complet (création, édition, publier /
-  dépublier, suppression). Les brouillons sont visibles ici uniquement ; le
-  catalogue public n'expose que les produits `published`.
-- **Commandes** (`/admin/orders`) — liste globale avec email client, totaux et
-  changement de statut (pending → paid → fulfilled…).
-- **API** : `GET/POST /api/admin/products`, `GET/PATCH/DELETE /api/admin/products/[id]`,
-  `GET /api/admin/orders`, `GET /api/admin/stats`,
-  `PATCH /api/admin/orders/[id]/status` — 401 si non connecté, **403** si rôle customer.
-- Compte seed : `admin@biblio.test` / `Bibli0-Admin!` (`npm run seed:admin`).
-
-## Stack
-
-- **Next.js 16.3.x** (Active LTS) · **React 19.2.x** · **TypeScript strict**
-- **Tailwind CSS 4.3.x**
-- **PostgreSQL 17** (Neon) · **Drizzle ORM 0.45.x**
-- **Better Auth 1.7.x** (email/password, RBAC)
-- **Stripe Checkout** (mode test) — webhook signé, idempotent
-- **Vitest 4.x** (unit/integration) · **Playwright 1.62.x** (e2e)
-- Déploiement : **Vercel + Neon + R2/S3** — config + runbook prêts
-  (`docs/runbook-deploy.md`), exécution à faire
-
-## Avancement
-
-| Slice                       | Statut                                |
-| --------------------------- | ------------------------------------- |
-| 0 — Fondations              | ✅ Done                               |
-| 1 — Authentication          | ✅ Done                               |
-| 2 — Catalogue public        | ✅ Done                               |
-| 3 — Panier                  | ✅ Done                               |
-| 4 — Checkout Stripe         | ✅ Done                               |
-| 5 — Bibliothèque / fichiers | ✅ Done                               |
-| 6 — Commandes               | ✅ Done                               |
-| 7 — Admin                   | ✅ Done                               |
-| 8 — Dashboard admin         | ✅ Done                               |
-| 9 — Qualité / accessibilité | ✅ Done                               |
-| 10 — Déploiement            | 🔄 docs/config prêts — deploy à faire |
-| 11 — Étude de cas portfolio | ⬜ à faire                            |
-
-## Démarrage
+## Quickstart
 
 ```bash
-cp .env.example .env        # renseigner DATABASE_URL, BETTER_AUTH_SECRET, etc.
-npm install
-npm run db:migrate          # applique les migrations Drizzle (base vierge / CI)
-npm run dev                 # http://localhost:3000
+cp .env.example .env && npm install
+npm run db:migrate && npm run seed:all && npm run dev
 ```
 
-> Le dossier `drizzle/meta/` est **versionné** : indispensable pour que
-> `drizzle-kit migrate` fonctionne sur un clone/CI frais. Si votre base existante
-> a été créée avec `npm run db:push`, continuez d'utiliser `db:push` (ne rejouez
-> pas `db:migrate` dessus : les CREATE TABLE seraient dupliqués).
-
-## Commandes
-
-| Commande                 | Description                                                       |
-| ------------------------ | ----------------------------------------------------------------- |
-| `npm run dev`            | Serveur de dev                                                    |
-| `npm run build`          | Build production                                                  |
-| `npm run lint`           | ESLint                                                            |
-| `npm run typecheck`      | TypeScript strict                                                 |
-| `npm test`               | Tests unitaires / intégration                                     |
-| `npm run test:e2e`       | Tests end-to-end (Playwright)                                     |
-| `npm run db:generate`    | Génère une migration Drizzle                                      |
-| `npm run db:migrate`     | Applique les migrations                                           |
-| `npm run db:studio`      | Inspecteur de base (Drizzle Studio)                               |
-| `npm run books:generate` | Génère les e-books de démo (`books/`)                             |
-| `npm run books:validate` | Valide les EPUB/PDF (zipfile, mimetype en premier)                |
-| `npm run books:upload`   | Upload les fichiers + mappe `products.file_url`                   |
-| `npm run storage:check`  | Test bout en bout du stockage (upload → presign → 200)            |
-| `npm run storage:minio`  | Met en place MinIO local (serveur, bucket, user, policy, données) |
-
-## Stockage local (démo) — MinIO
-
-Les fichiers ne transitent jamais par l'app : le serveur renvoie des **URLs
-pré-signées SigV4** (15 min) après vérification de l'achat.
-
-```bash
-bash scripts/setup-minio.sh   # télécharge MinIO, démarre :9000, bucket biblio,
-                              # user applicatif + policy, seed + upload des e-books
-cp .env.example .env          # puis renseigner les STORAGE_* affichés
-npm run storage:check         # vérification de bout en bout
-```
-
-Production : Cloudflare **R2** avec les mêmes `STORAGE_*` (ajouter
-`STORAGE_ACCOUNT_ID` à la place de `STORAGE_ENDPOINT`) — aucun changement de code
-(voir `docs/adr/006-storage.md`).
-
-## Catalogue de masse — Project Gutenberg (Gutendex)
-
-Le catalogue démo peut être **importé** (copié) depuis les ~70 000 œuvres du domaine
-public de Project Gutenberg (API Gutendex, sans clé). Après l'import, le site
-**ne dépend plus d'aucune source externe** : métadonnées + EPUB + couvertures vivent
-dans votre base et votre stockage.
-
-```bash
-npm run db:push            # applique la migration additive 0002 (source/license/…)
-npm run seed:products      # convertit les 12 produits démo en USD (boutique mono-devise)
-npm run import:gutenberg   # importe les 500 livres les plus populaires
-```
-
-Personnalisable via `.env` (voir `.env.example`) : `IMPORT_GUTENDEX_LIMIT`,
-`IMPORT_GUTENDEX_LANGUAGES`, `IMPORT_PRICE_CENTS` (défaut **50 → 0,50 USD**),
-`IMPORT_PUBLISHED`, `IMPORT_MIN_DOWNLOADS`, et `GUTENDEX_BASE_URL` (miroir auto-hébergé).
-
-**✅ Validé en réel** : 500 livres importés (0 échec), 512 produits en base,
-500 EPUB + 500 couvertures dans MinIO, tests d'intégration 8/8 sur Neon
-(y compris téléchargement pré-signé → 200 → contenu intact).
-
-- **Licence** : œuvres du domaine public (États-Unis) — licence enregistrée par produit,
-  usage commercial autorisé (`docs/adr/007-catalog-import.md`).
-- **Idempotent** : relançable sans doublon (dédupliqué par `source + source_id`).
-- **Ne jamais utiliser** Z-Library / Anna's Archive / LibGen (contenus piratés).
-
-## Vérification des versions
-
-Les versions affichées sont vérifiées au 2026-08-30. Au moment d'installer, re-vérifier :
-`npm show <package> version` et les docs officielles (support/LTS).
+Local demo credentials, storage, imports and the full command table:
+[`docs/local-dev.md`](docs/local-dev.md).
 
 ## Documentation
 
-- `docs/discovery.md` — problème, personas, signal senior.
-- `docs/product-brief.md` — PRD, user stories, périmètre.
-- `docs/architecture.md` — architecture, ERD, contrats API, sécurité.
-- `docs/implementation-plan.md` — plan vertical slices (état slice par slice).
-- `docs/stack.md` — comparaison des choix et versions vérifiées.
-- `docs/accessibility.md` — audit a11y + correctifs (Slice 9).
-- `docs/lighthouse.md` — mesures Lighthouse **réelles** (date/env/commandes).
-- `docs/runbook-deploy.md` — runbook de déploiement Vercel + Neon + R2 (Slice 10).
-- `docs/adr/` — décisions structurantes.
-- `docs/project-state.md` — état du projet (progression).
+| Doc                                                                                           | What                                                                      |
+| --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| [`STATUS.md`](STATUS.md)                                                                      | Single source of truth: slices, validation ledger, versions               |
+| [`docs/fix-plan.md`](docs/fix-plan.md)                                                        | Audit defects → lots → DoD (what happens next)                            |
+| [`docs/product.md`](docs/product.md)                                                          | Problem, personas, user stories, scope                                    |
+| [`docs/architecture.md`](docs/architecture.md)                                                | Architecture, ERD, API contracts, folder tree                             |
+| [`docs/adr/`](docs/adr/)                                                                      | Decision records (framework, DB, auth, payments, deploy, storage, import) |
+| [`docs/runbook-deploy.md`](docs/runbook-deploy.md)                                            | Vercel + Neon + R2 deployment runbook                                     |
+| [`docs/accessibility.md`](docs/accessibility.md) · [`docs/lighthouse.md`](docs/lighthouse.md) | a11y audit · measured scores                                              |
+| [`docs/local-dev.md`](docs/local-dev.md)                                                      | Local setup, commands, MinIO, Gutenberg import                            |
 
-## Sécurité (principes)
+## Stack
 
-- Webhooks Stripe : signature vérifiée sur corps brut ; **source de vérité = webhook**.
-- Idempotence 2 couches (`Idempotency-Key` + table `stripe_events` UNIQUE).
-- Prix toujours relus côté serveur (jamais depuis le client) ; montants en centimes.
-- RBAC re-vérifié dans chaque action serveur (pas seulement middleware).
-- Secrets côté serveur uniquement ; `.env*` non commité.
+Next.js 16.3 · React 19.2 · TypeScript strict · Tailwind 4.3 · PostgreSQL 17
+(Neon) · Drizzle 0.45 · Better Auth 1.7 · Stripe Checkout 22.6 (test mode,
+locked by code) · Vitest 4 · Playwright 1.62.
 
 ## Licence
 
-À définir (projet portfolio, contenu original).
+Code: [MIT](LICENSE). Book content: public-domain works imported from Project
+Gutenberg carry their recorded licence per product (ADR-007); demo generated
+books are marked as demo files.
+
+Français : [`README.fr.md`](README.fr.md)
