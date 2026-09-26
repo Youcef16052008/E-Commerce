@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { SignUpForm } from "@/features/authentication/ui/sign-up-form";
 
 export default function SignUpPage() {
@@ -8,6 +9,13 @@ export default function SignUpPage() {
         Un compte vous permet de retrouver vos achats à tout moment.
       </p>
       <SignUpForm />
+      <p className="mt-6 text-xs text-neutral-500">
+        En créant un compte, vous acceptez les{" "}
+        <Link href="/legal" className="underline hover:text-neutral-900">
+          conditions d&apos;utilisation et la politique de confidentialité
+        </Link>
+        . Vous pourrez exporter ou supprimer vos données à tout moment depuis votre compte.
+      </p>
     </main>
   );
 }

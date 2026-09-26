@@ -32,6 +32,11 @@ back-office administrateur.
 - **Les fichiers ne transitent jamais par l'application** — contrôle d'entitlement
   puis URL pré-signée SigV4 de 15 min. MinIO en local, Cloudflare R2 en prod,
   même code, bascule par variables d'environnement (ADR-006).
+- **RGPD intégré, pas rajouté** — export JSON des données et suppression du
+  compte en libre-service (suppression physique, ou anonymisation quand les
+  commandes doivent être conservées comme pièces comptables), page `/legal`
+  énonçant la licence de contenu (textes du domaine public, licence
+  personnelle sans DRM).
 - **Une vraie CI** — service Postgres 17 → migrations → seed → tests
   unitaires/intégration → build → e2e Playwright, sur Node 24.
   `npm run docs:check` casse la CI si le document d'architecture dérive du

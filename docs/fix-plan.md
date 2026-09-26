@@ -131,8 +131,15 @@ downloads it intact, sees the order in `/admin`.
       Wiring into webhook/refund handlers is deliberately deferred (standing rule 1)
       — see ADR-010 (L5.4). Re-done 2026-09-26 after the first commit was lost to
       a sandbox re-clone.
-- [ ] **L5.2** GDPR: account deletion, data export, `/legal` page, content
-      licence statement. _(D-06)_
+- [x] **L5.2** GDPR: account deletion, data export, `/legal` page, content
+      licence statement. _(D-06)_ Delivered `src/features/account/*`,
+      `GET /api/me/export` (JSON attachment), `DELETE /api/me/account`
+      (`{confirm:"SUPPRIMER"}`; hard delete without orders, anonymisation with
+      orders — accounting retention; 409 while a checkout/refund is in flight;
+      403 for admins), `/account` page, `/legal` (éditeur · CGV · RGPD · licence),
+      footer + sign-up consent line + licence note on product page.
+      Tests: 8 unit + 4 integration (local PG 17, 2026-09-26) + HTTP chain
+      401/400/200/hard/401 on dev server.
 - [ ] **L5.3** Coverage floor 70 % on checkout + entitlements paths in CI.
 - [ ] **L5.4** ADR-008 partial refunds · ADR-009 VAT/micro-enterprise ·
       ADR-010 transactional email.

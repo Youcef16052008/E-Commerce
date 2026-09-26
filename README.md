@@ -31,6 +31,10 @@ mode), personal library with presigned downloads, and an admin back office.
 - **Files never pass through the app** — entitlement check first, then a
   15-minute presigned SigV4 URL. MinIO locally, Cloudflare R2 in production,
   same code, env-only switch (ADR-006).
+- **GDPR built in, not bolted on** — JSON data export and self-service
+  account deletion (hard delete, or anonymisation when orders must be kept as
+  accounting records), a `/legal` page stating the content licence (public
+  domain texts, DRM-free personal licence).
 - **Real CI** — Postgres 17 service → migrate → seed → unit/integration →
   build → Playwright e2e, on Node 24. `npm run docs:check` fails the build if
   the architecture doc drifts from the filesystem.

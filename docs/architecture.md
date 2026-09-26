@@ -68,6 +68,10 @@ graph TB
 ## 2. Responsabilités
 
 - **features/authentication** : Better Auth (email/password), sessions, RBAC.
+- **features/account** : RGPD — export JSON (accès/portabilité) et suppression du
+  compte (hard delete sans commande, anonymisation sinon : les commandes sont
+  des pièces comptables conservées 10 ans ; refus si checkout/remboursement en
+  cours). Ne touche ni Stripe ni la machine à états.
 - **features/products** : catalogue, recherche, filtres, page produit (lecture publique).
 - **features/cart** : panier persistant (BDD), ajout/retrait, quantité strictement 1.
 - **features/checkout** : création Stripe Checkout Session, gestion webhooks, idempotence,
@@ -229,12 +233,16 @@ src/
 ├── app/                      # App Router : routes, layouts, pages (aucune règle métier)
 │   ├── admin/                # back-office (dashboard, produits, commandes, paiements)
 │   ├── api/                  # route handlers (auth, cart, checkout, products,
-│   │                         #   me/*, admin/*, webhooks/stripe, covers/gutenberg)
+│   │                         #   me/* (library, orders, export, account),
+│   │                         #   admin/*, webhooks/stripe, covers/gutenberg)
 │   ├── auth/                 # pages sign-in / sign-up
+│   ├── account/              # mon compte : export RGPD + suppression
 │   ├── cart/ checkout/ library/ orders/   # pages boutique
+│   ├── legal/                # mentions, CGV, confidentialité, licence de contenu
 │   ├── products/             # catalogue + page produit
 │   └── error.tsx, layout.tsx, page.tsx
 ├── features/                 # modules de capacité (domain/application/infrastructure/ui)
+│   ├── account/              # RGPD : export de données, suppression/anonymisation
 │   ├── admin/                # CRUD, dashboard/stats, statuts, exceptions, réconciliation
 │   ├── authentication/       # Better Auth, sessions, RBAC
 │   ├── cart/                 # panier persistant (quantité = 1)
@@ -252,7 +260,7 @@ src/
 └── shared/                   # ui, lib, config (aucun I/O)
     ├── config/               # rôles, constantes partagées
     ├── lib/                  # format, slugify
-    └── ui/                   # header, composants présentation
+    └── ui/                   # header, footer, composants présentation
 tests/
 ├── unit/ integration/ e2e/
 docs/

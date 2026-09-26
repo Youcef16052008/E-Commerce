@@ -78,6 +78,13 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               Paiement sécurisé via Stripe. Votre droit d&apos;accès est délivré après confirmation
               du paiement.
             </p>
+            <p className="text-xs text-neutral-500">
+              Fichier sans DRM, licence personnelle non transférable —{" "}
+              <Link href="/legal#licence" className="underline hover:text-neutral-900">
+                conditions de la licence
+              </Link>
+              .
+            </p>
           </div>
         </div>
       </div>
