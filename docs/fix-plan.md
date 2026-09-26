@@ -190,16 +190,26 @@ question is answered by an ADR. **Met 2026-09-26** (L5.1–L5.5; CI now runs
       tests; curl chain as admin: 401×3 anon → export 200 (12 rows) → dry-run →
       apply `created:1` → bulk publish → verified → deleted.
 - [ ] **L6.4** Lighthouse CI budget: LCP < 1.8 s on `/` and `/products`.
-- [ ] **L6.5** Portfolio case study (slice 11) built from the ADRs.
-- [ ] **L6.6** _(decision point, post-deploy)_ boundary lint
-      (`import/no-restricted-paths`) for the Rule-01 dependency rule — the only
-      part of audit Rev B adopted; folder **renames stay deferred**.
+- [x] **L6.5** Portfolio case study (slice 11) built from the ADRs.
+      2026-09-26: `docs/case-study.md` (EN) — decisions table over ADR-004/006/
+      008/009/010, guard-rails table, evidenced numbers, reading order; linked
+      from both READMEs; `docs:lint` 0.
+- [x] **L6.6** boundary lint for the Rule-01 dependency rule — the only part of
+      audit Rev B adopted; folder **renames stay deferred**. 2026-09-26: done
+      pre-deploy with core `no-restricted-imports` (no plugin) in
+      `eslint.config.mjs`: `domain/` ⊥ framework/DB/server/outer layers;
+      `application/`+`infrastructure/` ⊥ UI/routes; `server/`+`shared/lib/` ⊥
+      features. Baseline: 0 violations on the real tree (`npm run lint` clean);
+      two injected probes (domain→`@/server/db`, server→feature) → 2 Rule-01
+      errors. `shared/ui/header.tsx` composes feature widgets by design and is
+      outside the leaf rule.
 
 **Lot 6 DoD** — three features a user would notice, none touching the payment
 core, and one metric you can point at in an interview. **Three picked and
 shipped 2026-09-26: L6.1 outbox, L6.2 FTS, L6.3 admin bulk/CSV.** Metric: FTS
 query plan = `Bitmap Index Scan on products_search_vector_idx` (GIN), coverage
-floor on money paths (checkout L 84 %). L6.4/L6.5/L6.6 remain optional.
+floor on money paths (checkout L 84 %). L6.5 and L6.6 shipped the same day; only L6.4 (Lighthouse, needs the live URL)
+remains.
 
 ## Defect → lot traceability
 

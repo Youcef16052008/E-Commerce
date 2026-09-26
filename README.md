@@ -59,6 +59,7 @@ Local demo credentials, storage, imports and the full command table:
 | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | [`STATUS.md`](STATUS.md)                                                                      | Single source of truth: slices, validation ledger, versions                                    |
 | [`docs/fix-plan.md`](docs/fix-plan.md)                                                        | Audit defects → lots → DoD (what happens next)                                                 |
+| [`docs/case-study.md`](docs/case-study.md)                                                    | Portfolio case study: decisions, guard-rails, evidenced numbers                                |
 | [`docs/product.md`](docs/product.md)                                                          | Problem, personas, user stories, scope                                                         |
 | [`docs/architecture.md`](docs/architecture.md)                                                | Architecture, ERD, API contracts, folder tree                                                  |
 | [`docs/adr/`](docs/adr/)                                                                      | Decision records (framework, DB, auth, payments, deploy, storage, import, refunds, VAT, email) |

@@ -3,7 +3,8 @@
 ## 1. Vue générale
 
 Modular monolith (default). Next.js 16 App Router, server-first. Architecture orientée
-**features** (domain / application / infrastructure / ui). La base de données n'est jamais
+**features** (domain / application / infrastructure / ui — règle vérifiée par ESLint
+`no-restricted-imports`, voir `eslint.config.mjs`). La base de données n'est jamais
 touchée depuis le client ; toute mutation passe par Server Actions ou Route Handlers
 avec validation et autorisation côté serveur.
 
