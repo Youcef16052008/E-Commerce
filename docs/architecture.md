@@ -228,7 +228,7 @@ erDiagram
 > Généré depuis l'arbre réel (`src/` au 2026-09-25) et **vérifié par
 > `npm run docs:check`** — un écart entre ce bloc et le disque casse la CI.
 
-```
+```text
 src/
 ├── app/                      # App Router : routes, layouts, pages (aucune règle métier)
 │   ├── admin/                # back-office (dashboard, produits, commandes, paiements)

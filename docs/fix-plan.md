@@ -96,9 +96,9 @@ No system Postgres here → attempt an npm-installable local Postgres (or PGlite
   admin dashboard) into `docs/screenshots/`, wire them **above the fold** in both
   READMEs.
 
-* [x] **L3.1** Local DB up (or honest "blocked" note in STATUS).
-* [x] **L3.2** Six screenshots captured + committed.
-* [x] **L3.3** README screenshot slots filled.
+- [x] **L3.1** Local DB up (or honest "blocked" note in STATUS).
+- [x] **L3.2** Six screenshots captured + committed.
+- [x] **L3.3** README screenshot slots filled.
 
 **Lot 3 DoD** — the repo shows the product without anyone running it.
 
@@ -153,11 +153,17 @@ downloads it intact, sees the order in `/admin`.
       extension, schema sketched); no tax collected while test-mode, regime
       A/B/C is a launch blocker in runbook §1; mail = env-gated adapter,
       best-effort after commit, wiring via the L6.1 outbox.
-- [ ] **L5.5** markdownlint in CI with a relaxed config (baseline run first —
+- [x] **L5.5** markdownlint in CI with a relaxed config (baseline run first —
       if legacy noise is large, fix rules not the whole archive in one pass).
+      Baseline 2026-09-26: 709 errors (680 MD013 line-length, 29 in
+      `docs/reviews/**`, 5 live). Config `.markdownlint-cli2.jsonc`: MD013 off
+      (Prettier owns wrapping), MD024 siblings-only, archive + `CLAUDE.md`
+      ignored; the 5 live errors fixed. `npm run docs:lint` in CI; verified to
+      fail on an injected bare URL (exit 1).
 
 **Lot 5 DoD** — green CI includes docs parity + coverage; every open financial
-question is answered by an ADR.
+question is answered by an ADR. **Met 2026-09-26** (L5.1–L5.5; CI now runs
+`docs:check` + `docs:lint` + `test:coverage`; ADR-008/009/010 written).
 
 ## Lot 6 — Reliability & growth (weeks 5–8, pick 3)
 

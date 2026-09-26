@@ -56,6 +56,9 @@ jobs:
       - name: Docs ↔ source parity
         run: npm run docs:check
 
+      - name: Markdown lint (relaxed config, see .markdownlint-cli2.jsonc)
+        run: npm run docs:lint
+
       - name: Apply DB migrations
         run: npm run db:migrate
 

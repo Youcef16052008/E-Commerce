@@ -1,0 +1,21 @@
+{
+  // Fix-plan L5.5 — configuration volontairement RELÂCHÉE (baseline 2026-09-26 :
+  // 709 erreurs, dont 680 MD013). On corrige des RÈGLES, pas l'archive :
+  //  - MD013 (longueur de ligne) : Prettier est propriétaire du reformatage
+  //    (tableaux et blocs de code dépassent légitimement 80 colonnes) ;
+  //  - MD024 : titres identiques tolérés s'ils ne sont pas frères (ADR : « Statut »,
+  //    « Contexte », « Décision » se répètent d'un fichier à l'autre, jamais au même niveau) ;
+  //  - docs/reviews/** : revues datées, archivées telles quelles (29 erreurs gelées) ;
+  //  - CLAUDE.md : simple directive d'inclusion (`@AGENTS.md`), pas un document.
+  // Tout le reste (titres, listes, URLs nues, langue des blocs de code) est actif
+  // sur README, STATUS, docs/*.md et docs/adr/**.
+  "config": {
+    "default": true,
+    "MD013": false,
+    "MD024": { "siblings_only": true },
+    "MD041": { "front_matter_title": "", "level": 1 },
+  },
+  "globs": ["**/*.md"],
+  "ignores": ["node_modules/**", ".next/**", "coverage/**", "docs/reviews/**", "CLAUDE.md"],
+  "noProgress": true,
+}
