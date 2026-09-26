@@ -87,6 +87,9 @@ graph TB
 - **server/db** : schéma Drizzle + connexion + migrations.
 - **server/payments** : passerelle Stripe (session, webhook, refunds).
 - **server/storage** : adaptateur R2/S3/MinIO (URLs pré-signées).
+- **server/mail** : e-mail transactionnel (reçu, remboursement) — provider par
+  `MAIL_PROVIDER` (console | resend | postmark | ses), templates purs, envoi
+  best-effort hors transaction (ADR-010).
 
 ## 3. Modèle de données (ERD)
 
@@ -243,6 +246,7 @@ src/
 │   └── refunds/              # remboursements Stripe (refund_pending → webhook)
 ├── server/
 │   ├── db/                   # schéma Drizzle + connexion
+│   ├── mail/                 # e-mail transactionnel (console/Resend/Postmark/SES)
 │   ├── payments/             # passerelle Stripe
 │   └── storage/              # adaptateur R2/S3/MinIO (pré-signé)
 └── shared/                   # ui, lib, config (aucun I/O)

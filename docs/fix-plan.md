@@ -124,8 +124,13 @@ downloads it intact, sees the order in `/admin`.
 
 ## Lot 5 — Trust (weeks 2–4)
 
-- [ ] **L5.1** `platform/mail` interface (Resend/Postmark/SES by env, like
-      storage) + receipt & refund templates. _(D-05)_
+- [x] **L5.1** `platform/mail` interface (Resend/Postmark/SES by env, like
+      storage) + receipt & refund templates. _(D-05)_ Delivered
+      `src/server/mail/{index,providers,templates}.ts` + `tests/unit/mail.test.ts`
+      (18 tests, no network); `MAIL_PROVIDER=console` default keeps dev/CI silent.
+      Wiring into webhook/refund handlers is deliberately deferred (standing rule 1)
+      — see ADR-010 (L5.4). Re-done 2026-09-26 after the first commit was lost to
+      a sandbox re-clone.
 - [ ] **L5.2** GDPR: account deletion, data export, `/legal` page, content
       licence statement. _(D-06)_
 - [ ] **L5.3** Coverage floor 70 % on checkout + entitlements paths in CI.
