@@ -64,6 +64,13 @@
       "when": 1790403816370,
       "tag": "0008_outbox",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790404315315,
+      "tag": "0009_products_fts",
+      "breakpoints": true
     }
   ]
 }

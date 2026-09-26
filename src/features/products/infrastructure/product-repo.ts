@@ -1,8 +1,9 @@
-import { and, asc, count, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, sql, type SQL } from "drizzle-orm";
 import { db } from "@/server/db";
 import { products } from "@/server/db/schema";
 import type { ProductListParams, ProductListResult } from "../domain/product-types";
 import type { Product } from "@/server/db/schema";
+import { toPrefixTsQuery } from "../domain/search-query";
 
 /**
  * Dépôt de lecture du catalogue.
@@ -17,9 +18,12 @@ export async function listPublishedProducts(
 
   const conditions = [eq(products.published, true)];
 
-  if (params.q) {
-    const like = `%${params.q}%`;
-    conditions.push(or(ilike(products.title, like), ilike(products.author, like))!);
+  // Recherche plein texte Postgres (L6.2) : colonne générée `search_vector`
+  // (titre A > auteur B > description C > genre D), index GIN, préfixes.
+  const tsQuery = toPrefixTsQuery(params.q);
+  const tsq = tsQuery ? sql`to_tsquery('simple', ${tsQuery})` : null;
+  if (tsq) {
+    conditions.push(sql`${products.searchVector} @@ ${tsq}`);
   }
   if (params.genre) {
     conditions.push(eq(products.genre, params.genre));
@@ -35,7 +39,11 @@ export async function listPublishedProducts(
 
   const [{ value: total }] = await db.select({ value: count() }).from(products).where(where);
 
-  const orderBy = (() => {
+  const orderBy = ((): SQL[] => {
+    // Sans tri explicite, une recherche est classée par pertinence, puis récence.
+    if (tsq && (!params.sort || params.sort === "newest")) {
+      return [sql`ts_rank_cd(${products.searchVector}, ${tsq}) desc`, desc(products.createdAt)];
+    }
     switch (params.sort) {
       case "price_asc":
         return [asc(products.priceInCents)];

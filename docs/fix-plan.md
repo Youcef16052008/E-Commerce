@@ -175,7 +175,12 @@ question is answered by an ADR. **Met 2026-09-26** (L5.1–L5.5; CI now runs
       limit; Pro may go hourly), `npm run outbox:drain` override, admin
       `/admin/payments` now reads persisted rows + last run. Also wires ADR-010
       mail by _pull_ (no webhook change). 6 unit + 3 integration tests.
-- [ ] **L6.2** Search over 512 products — Postgres FTS, no new infrastructure.
+- [x] **L6.2** Search over 512 products — Postgres FTS, no new infrastructure.
+      2026-09-26: migration `0009_products_fts` (`unaccent` + IMMUTABLE wrapper,
+      generated `search_vector` weighted A–D, GIN index), `toPrefixTsQuery`
+      (pure, operator-safe), relevance ordering by default. `EXPLAIN` shows
+      `Bitmap Index Scan on products_search_vector_idx`. 5 unit + 5 integration
+      tests (accents both ways, prefix, author/description, AND, hostile input).
 - [ ] **L6.3** Admin: bulk publish, CSV import/export.
 - [ ] **L6.4** Lighthouse CI budget: LCP < 1.8 s on `/` and `/products`.
 - [ ] **L6.5** Portfolio case study (slice 11) built from the ADRs.

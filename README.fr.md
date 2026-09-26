@@ -37,6 +37,9 @@ back-office administrateur.
   commandes doivent être conservées comme pièces comptables), page `/legal`
   énonçant la licence de contenu (textes du domaine public, licence
   personnelle sans DRM).
+- **La recherche, c'est Postgres, pas un SaaS** — un `tsvector` généré et
+  pondéré (titre > auteur > description > genre) avec `unaccent` et un index
+  GIN ; préfixes et classement par pertinence, zéro infrastructure en plus.
 - **Une vraie CI** — service Postgres 17 → migrations → seed → tests
   unitaires/intégration → build → e2e Playwright, sur Node 24.
   `npm run docs:check` casse la CI si le document d'architecture dérive du

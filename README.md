@@ -35,6 +35,9 @@ mode), personal library with presigned downloads, and an admin back office.
   account deletion (hard delete, or anonymisation when orders must be kept as
   accounting records), a `/legal` page stating the content licence (public
   domain texts, DRM-free personal licence).
+- **Search is Postgres, not a SaaS** — a generated, weighted `tsvector`
+  (title > author > description > genre) with `unaccent` and a GIN index;
+  prefix matching and relevance ranking, zero extra infrastructure.
 - **Real CI** — Postgres 17 service → migrate → seed → unit/integration →
   build → Playwright e2e, on Node 24. `npm run docs:check` fails the build if
   the architecture doc drifts from the filesystem; a coverage floor (70 %) guards

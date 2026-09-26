@@ -72,7 +72,11 @@ graph TB
   compte (hard delete sans commande, anonymisation sinon : les commandes sont
   des pièces comptables conservées 10 ans ; refus si checkout/remboursement en
   cours). Ne touche ni Stripe ni la machine à états.
-- **features/products** : catalogue, recherche, filtres, page produit (lecture publique).
+- **features/products** : catalogue, filtres, page produit (lecture publique) ;
+  recherche plein texte Postgres (L6.2) : colonne générée `search_vector`
+  (titre A > auteur B > description C > genre D, `simple` + `biblio_unaccent`),
+  index GIN, préfixes, tri par pertinence — `domain/search-query.ts` construit
+  la tsquery (jamais d'opérateur utilisateur).
 - **features/cart** : panier persistant (BDD), ajout/retrait, quantité strictement 1.
 - **features/checkout** : création Stripe Checkout Session, gestion webhooks, idempotence,
   délivrance d'entitlements (transaction `stripe_events` → `paid` → grants → panier).
@@ -257,7 +261,7 @@ src/
 │   ├── library/              # entitlements : droits, bibliothèque, downloads
 │   ├── orders/               # commandes, historique, machine à états
 │   ├── outbox/               # file durable : réconciliation persistée, reçus/avis (pull)
-│   ├── products/             # catalogue public (lecture, recherche, filtres)
+│   ├── products/             # catalogue public (lecture, recherche FTS, filtres)
 │   └── refunds/              # remboursements Stripe (refund_pending → webhook)
 ├── server/
 │   ├── db/                   # schéma Drizzle + connexion

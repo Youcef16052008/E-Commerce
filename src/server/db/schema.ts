@@ -1,4 +1,5 @@
 import {
+  customType,
   pgTable,
   text,
   integer,
@@ -9,8 +10,15 @@ import {
   index,
   check,
 } from "drizzle-orm/pg-core";
-import { sql } from "drizzle-orm";
+import { sql, type SQL } from "drizzle-orm";
 import { user } from "./auth-schema";
+
+/** Colonne `tsvector` (recherche plein texte, L6.2). */
+const tsvector = customType<{ data: string }>({
+  dataType() {
+    return "tsvector";
+  },
+});
 
 /**
  * Tables de domaine (Biblio).
@@ -36,6 +44,19 @@ export const products = pgTable(
     priceInCents: integer("price_in_cents").notNull(),
     currency: text("currency").notNull().default("usd"),
     published: boolean("published").notNull().default(false),
+    /**
+     * Vecteur de recherche GÉNÉRÉ (L6.2) : titre (A) > auteur (B) > description (C)
+     * > genre (D), config `simple` (catalogue multilingue : pas de stemming) après
+     * `biblio_unaccent` (wrapper IMMUTABLE de `unaccent`, créé par la migration 0009).
+     */
+    searchVector: tsvector("search_vector").generatedAlwaysAs(
+      (): SQL => sql`
+        setweight(to_tsvector('simple', biblio_unaccent(coalesce(title, ''))), 'A') ||
+        setweight(to_tsvector('simple', biblio_unaccent(coalesce(author, ''))), 'B') ||
+        setweight(to_tsvector('simple', biblio_unaccent(coalesce(description, ''))), 'C') ||
+        setweight(to_tsvector('simple', biblio_unaccent(coalesce(genre, ''))), 'D')
+      `,
+    ),
     // Monnaie unique de la boutique : USD (Stripe Checkout est mono-devise).
     // Provenance du catalogue importé (ex. Gutendex / Project Gutenberg).
     source: text("source"),
@@ -50,6 +71,7 @@ export const products = pgTable(
   (table) => [
     index("products_category_idx").on(table.genre),
     index("products_title_idx").on(table.title),
+    index("products_search_vector_idx").using("gin", table.searchVector),
     uniqueIndex("products_source_source_id_idx").on(table.source, table.sourceId),
     check("products_price_non_negative", sql`${table.priceInCents} >= 0`),
     check("products_currency_usd", sql`lower(${table.currency}) = 'usd'`),
