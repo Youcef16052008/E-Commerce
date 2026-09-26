@@ -97,6 +97,9 @@
    > émise sur le mauvais domaine → « déconnecté » permanent.
    > Les clés `sk_live_` / `rk_live_` sont refusées par le code : ne renseigner
    > qu’un compte Stripe test dans tous les environnements de cette phase.
+   > Avant toute clé live (phase 2) : régime TVA choisi et validé (ADR-009,
+   > voie A/B/C), domaine expéditeur vérifié pour `MAIL_FROM` (ADR-010),
+   > mentions `/legal` § 1 complétées (éditeur, contact).
 
 4. **Deployment protection** (option conseillé) : les previews restent
    publiques mais peuvent être protégées par password (Vercel → Deployments).

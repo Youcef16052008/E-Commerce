@@ -147,8 +147,12 @@ downloads it intact, sees the order in `/admin`.
       L 84.2 · S 79.8 · F 89.2 · B 70.4 %, library L/S/F ≥ 99 · B 90 %); CI step
       `npm run test:coverage` replaces `npm test`. Floor verified to bite (99 %
       trial → exit 1). +4 unit tests on the presigned-download path.
-- [ ] **L5.4** ADR-008 partial refunds · ADR-009 VAT/micro-enterprise ·
-      ADR-010 transactional email.
+- [x] **L5.4** ADR-008 partial refunds · ADR-009 VAT/micro-enterprise ·
+      ADR-010 transactional email. Written 2026-09-26 (`docs/adr/008…010`):
+      no partial refunds in phase 1 (per-line refund is the only admissible
+      extension, schema sketched); no tax collected while test-mode, regime
+      A/B/C is a launch blocker in runbook §1; mail = env-gated adapter,
+      best-effort after commit, wiring via the L6.1 outbox.
 - [ ] **L5.5** markdownlint in CI with a relaxed config (baseline run first —
       if legacy noise is large, fix rules not the whole archive in one pass).
 

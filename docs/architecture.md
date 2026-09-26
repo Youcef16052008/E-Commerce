@@ -264,7 +264,7 @@ src/
 tests/
 ├── unit/ integration/ e2e/
 docs/
-├── adr/                      # décisions structurantes (001…007)
+├── adr/                      # décisions structurantes (001…010)
 ├── reviews/                  # revues datées archivées (audit, durcissement…)
 └── architecture.md, product.md, local-dev.md, runbook-deploy.md, …
 ```
@@ -272,4 +272,5 @@ docs/
 ## 12. Décisions structurantes
 
 - `docs/adr/001-framework.md` · `002-database.md` · `003-authentication.md`
-- `004-payments.md` · `005-deployment.md`
+- `004-payments.md` · `005-deployment.md` · `006-storage.md` · `007-catalog-import.md`
+- `008-partial-refunds.md` · `009-vat-and-tax-status.md` · `010-transactional-email.md`

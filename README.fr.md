@@ -55,17 +55,17 @@ Identifiants de démo, stockage, imports et table complète des commandes :
 
 ## Documentation
 
-| Document                                                                                      | Contenu                                                                                  |
-| --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| [`STATUS.md`](STATUS.md)                                                                      | Source unique de vérité : slices, registre de validation, versions                       |
-| [`docs/fix-plan.md`](docs/fix-plan.md)                                                        | Défauts d'audit → lots → DoD (la suite)                                                  |
-| [`docs/product.md`](docs/product.md)                                                          | Problème, personas, user stories, périmètre                                              |
-| [`docs/architecture.md`](docs/architecture.md)                                                | Architecture, ERD, contrats d'API, arborescence                                          |
-| [`docs/adr/`](docs/adr/)                                                                      | Décisions structurantes (framework, BDD, auth, paiements, déploiement, stockage, import) |
-| [`docs/deploy-preflight.md`](docs/deploy-preflight.md)                                        | Pré-vérifications + `npm run smoke` avant/après chaque déploiement                       |
-| [`docs/runbook-deploy.md`](docs/runbook-deploy.md)                                            | Runbook de déploiement Vercel + Neon + R2                                                |
-| [`docs/accessibility.md`](docs/accessibility.md) · [`docs/lighthouse.md`](docs/lighthouse.md) | Audit a11y · scores mesurés                                                              |
-| [`docs/local-dev.md`](docs/local-dev.md)                                                      | Setup local, commandes, MinIO, import Gutenberg                                          |
+| Document                                                                                      | Contenu                                                                                                               |
+| --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| [`STATUS.md`](STATUS.md)                                                                      | Source unique de vérité : slices, registre de validation, versions                                                    |
+| [`docs/fix-plan.md`](docs/fix-plan.md)                                                        | Défauts d'audit → lots → DoD (la suite)                                                                               |
+| [`docs/product.md`](docs/product.md)                                                          | Problème, personas, user stories, périmètre                                                                           |
+| [`docs/architecture.md`](docs/architecture.md)                                                | Architecture, ERD, contrats d'API, arborescence                                                                       |
+| [`docs/adr/`](docs/adr/)                                                                      | Décisions structurantes (framework, BDD, auth, paiements, déploiement, stockage, import, remboursements, TVA, e-mail) |
+| [`docs/deploy-preflight.md`](docs/deploy-preflight.md)                                        | Pré-vérifications + `npm run smoke` avant/après chaque déploiement                                                    |
+| [`docs/runbook-deploy.md`](docs/runbook-deploy.md)                                            | Runbook de déploiement Vercel + Neon + R2                                                                             |
+| [`docs/accessibility.md`](docs/accessibility.md) · [`docs/lighthouse.md`](docs/lighthouse.md) | Audit a11y · scores mesurés                                                                                           |
+| [`docs/local-dev.md`](docs/local-dev.md)                                                      | Setup local, commandes, MinIO, import Gutenberg                                                                       |
 
 ## Stack
 
