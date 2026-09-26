@@ -30,6 +30,30 @@ export default defineConfig({
         "src/shared/ui/**",
         "**/*.config.*",
       ],
+      /**
+       * Plancher de couverture (fix-plan L5.3) — `npm run test:coverage` (CI).
+       * Ciblé sur les chemins d'argent : checkout (session Stripe, webhook,
+       * fulfillment) et entitlements (bibliothèque, téléchargement). Les
+       * composants `ui/*.tsx` sont exclus : ce sont des client components
+       * couverts par Playwright, pas par Vitest.
+       * Branches checkout à 65 % (mesuré 70,4 % le 2026-09-26 : les branches
+       * manquantes sont des garde-fous d'erreur Stripe réseau, non simulés
+       * sans clé) ; relever à 70 quand un mock Stripe stable existera (Lot 6).
+       */
+      thresholds: {
+        "src/features/checkout/**/!(*.tsx)": {
+          lines: 70,
+          statements: 70,
+          functions: 70,
+          branches: 65,
+        },
+        "src/features/library/**/!(*.tsx)": {
+          lines: 70,
+          statements: 70,
+          functions: 70,
+          branches: 70,
+        },
+      },
     },
   },
   resolve: {

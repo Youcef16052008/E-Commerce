@@ -37,7 +37,8 @@ mode), personal library with presigned downloads, and an admin back office.
   domain texts, DRM-free personal licence).
 - **Real CI** — Postgres 17 service → migrate → seed → unit/integration →
   build → Playwright e2e, on Node 24. `npm run docs:check` fails the build if
-  the architecture doc drifts from the filesystem.
+  the architecture doc drifts from the filesystem; a coverage floor (70 %) guards
+  the checkout and entitlement paths.
 
 ## Quickstart
 

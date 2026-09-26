@@ -140,7 +140,13 @@ downloads it intact, sees the order in `/admin`.
       footer + sign-up consent line + licence note on product page.
       Tests: 8 unit + 4 integration (local PG 17, 2026-09-26) + HTTP chain
       401/400/200/hard/401 on dev server.
-- [ ] **L5.3** Coverage floor 70 % on checkout + entitlements paths in CI.
+- [x] **L5.3** Coverage floor 70 % on checkout + entitlements paths in CI.
+      `vitest.config.mts` `coverage.thresholds` per glob
+      (`src/features/{checkout,library}/**/!(*.tsx)`: lines/statements/functions
+      70, branches 70 library / 65 checkout — measured 2026-09-26: checkout
+      L 84.2 · S 79.8 · F 89.2 · B 70.4 %, library L/S/F ≥ 99 · B 90 %); CI step
+      `npm run test:coverage` replaces `npm test`. Floor verified to bite (99 %
+      trial → exit 1). +4 unit tests on the presigned-download path.
 - [ ] **L5.4** ADR-008 partial refunds · ADR-009 VAT/micro-enterprise ·
       ADR-010 transactional email.
 - [ ] **L5.5** markdownlint in CI with a relaxed config (baseline run first —

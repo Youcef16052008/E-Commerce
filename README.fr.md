@@ -40,7 +40,8 @@ back-office administrateur.
 - **Une vraie CI** — service Postgres 17 → migrations → seed → tests
   unitaires/intégration → build → e2e Playwright, sur Node 24.
   `npm run docs:check` casse la CI si le document d'architecture dérive du
-  système de fichiers.
+  système de fichiers ; un plancher de couverture (70 %) protège les chemins
+  checkout et entitlements.
 
 ## Démarrage rapide
 
