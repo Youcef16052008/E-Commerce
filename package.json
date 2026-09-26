@@ -23,6 +23,7 @@
     "mcp:stripe": "mcp",
     "mcp:playwright": "playwright-mcp --headless --isolated --output-dir=test-results/mcp",
     "payments:reconcile": "tsx scripts/reconcile-payments.ts",
+    "outbox:drain": "tsx scripts/outbox-drain.ts",
     "stripe:reconcile": "dotenv --override -e .env.test -- tsx scripts/reconcile-stripe.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",

@@ -81,6 +81,11 @@ graph TB
   « entitlements » du domaine ; le dossier s'appelle `library/` car il porte aussi
   la page et l'API `/api/me/library`.
 - **features/orders** : commandes, historique, statuts (machine à états des transitions).
+- **features/outbox** : table `outbox_jobs` drainée par `/api/cron/outbox` ou
+  `npm run outbox:drain` — `reconcile_payments` (matérialise les écarts en
+  `payment_exception_rows`, la page admin est une vue dessus), `send_receipts`
+  et `send_refund_notices` (modèle _pull_ : lit l'état des commandes, journalise
+  dans `mail_log`, tag unique = idempotence). Aucun handler Stripe modifié.
 - **features/refunds** : réservation `refund_pending`, appel Stripe idempotent,
   confirmation par webhook signé, révocation conditionnelle.
 - **features/catalog-import** : import Gutendex (Project Gutenberg) — mapper,
@@ -234,7 +239,8 @@ src/
 │   ├── admin/                # back-office (dashboard, produits, commandes, paiements)
 │   ├── api/                  # route handlers (auth, cart, checkout, products,
 │   │                         #   me/* (library, orders, export, account),
-│   │                         #   admin/*, webhooks/stripe, covers/gutenberg)
+│   │                         #   admin/*, webhooks/stripe, covers/gutenberg,
+│   │                         #   cron/outbox (Vercel Cron, Bearer CRON_SECRET))
 │   ├── auth/                 # pages sign-in / sign-up
 │   ├── account/              # mon compte : export RGPD + suppression
 │   ├── cart/ checkout/ library/ orders/   # pages boutique
@@ -250,6 +256,7 @@ src/
 │   ├── checkout/             # sessions Stripe, webhooks, idempotence, fulfillment
 │   ├── library/              # entitlements : droits, bibliothèque, downloads
 │   ├── orders/               # commandes, historique, machine à états
+│   ├── outbox/               # file durable : réconciliation persistée, reçus/avis (pull)
 │   ├── products/             # catalogue public (lecture, recherche, filtres)
 │   └── refunds/              # remboursements Stripe (refund_pending → webhook)
 ├── server/

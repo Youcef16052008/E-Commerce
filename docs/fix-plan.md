@@ -167,8 +167,14 @@ question is answered by an ADR. **Met 2026-09-26** (L5.1–L5.5; CI now runs
 
 ## Lot 6 — Reliability & growth (weeks 5–8, pick 3)
 
-- [ ] **L6.1** Outbox table + Vercel Cron route draining it; exceptions page
+- [x] **L6.1** Outbox table + Vercel Cron route draining it; exceptions page
       becomes a view over real rows; hand-run CLIs stay as manual override. _(D-11)_
+      Delivered 2026-09-26: migration `0008_outbox` (`outbox_jobs`, `mail_log`,
+      `payment_exception_rows`), `src/features/outbox/*`, `GET /api/cron/outbox`
+      (Bearer `CRON_SECRET`, 503 if unset), `vercel.json` daily cron (Hobby
+      limit; Pro may go hourly), `npm run outbox:drain` override, admin
+      `/admin/payments` now reads persisted rows + last run. Also wires ADR-010
+      mail by _pull_ (no webhook change). 6 unit + 3 integration tests.
 - [ ] **L6.2** Search over 512 products — Postgres FTS, no new infrastructure.
 - [ ] **L6.3** Admin: bulk publish, CSV import/export.
 - [ ] **L6.4** Lighthouse CI budget: LCP < 1.8 s on `/` and `/products`.

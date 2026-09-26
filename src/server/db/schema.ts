@@ -240,6 +240,85 @@ export const stripeEvents = pgTable("stripe_events", {
   processedAt: timestamp("processed_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/**
+ * Outbox (L6.1 / D-11) : file de travaux durable drainée par le Cron Vercel
+ * (`/api/cron/outbox`) ou à la main (`npm run outbox:drain`). Aucun travail ne
+ * mute un paiement : réconciliation interne, envoi d'e-mails, rien d'autre.
+ */
+export const outboxJobs = pgTable(
+  "outbox_jobs",
+  {
+    id: text("id").primaryKey(),
+    kind: text("kind", {
+      enum: ["reconcile_payments", "send_receipts", "send_refund_notices"],
+    }).notNull(),
+    status: text("status", { enum: ["pending", "running", "done", "failed"] })
+      .notNull()
+      .default("pending"),
+    attempts: integer("attempts").notNull().default(0),
+    maxAttempts: integer("max_attempts").notNull().default(5),
+    runAfter: timestamp("run_after", { withTimezone: true }).notNull().defaultNow(),
+    lastError: text("last_error"),
+    // Résumé JSON du dernier passage (compteurs uniquement, jamais de PII).
+    result: text("result"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("outbox_jobs_status_run_after_idx").on(table.status, table.runAfter),
+    check("outbox_jobs_attempts_non_negative", sql`${table.attempts} >= 0`),
+    check(
+      "outbox_jobs_status_valid",
+      sql`${table.status} in ('pending', 'running', 'done', 'failed')`,
+    ),
+  ],
+);
+
+/** Journal des e-mails transactionnels : `tag` unique = idempotence (ADR-010). */
+export const mailLog = pgTable(
+  "mail_log",
+  {
+    id: text("id").primaryKey(),
+    tag: text("tag").notNull().unique(),
+    orderId: text("order_id")
+      .notNull()
+      .references(() => orders.id, { onDelete: "cascade" }),
+    recipient: text("recipient").notNull(),
+    provider: text("provider").notNull(),
+    delivered: boolean("delivered").notNull().default(false),
+    messageId: text("message_id"),
+    error: text("error"),
+    sentAt: timestamp("sent_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("mail_log_order_idx").on(table.orderId)],
+);
+
+/**
+ * Lignes d'exceptions de paiement PERSISTÉES par le travail `reconcile_payments`
+ * (la page admin est une vue sur ces lignes). `resolved_at` posé quand un
+ * passage ultérieur ne retrouve plus l'écart.
+ */
+export const paymentExceptionRows = pgTable(
+  "payment_exception_rows",
+  {
+    id: text("id").primaryKey(),
+    kind: text("kind").notNull(),
+    orderId: text("order_id")
+      .notNull()
+      .references(() => orders.id, { onDelete: "cascade" }),
+    // '' quand l'écart porte sur la commande entière (clé d'unicité sans NULL).
+    productId: text("product_id").notNull().default(""),
+    firstSeenAt: timestamp("first_seen_at", { withTimezone: true }).notNull().defaultNow(),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex("payment_exception_rows_key_idx").on(table.kind, table.orderId, table.productId),
+    index("payment_exception_rows_open_idx").on(table.resolvedAt),
+  ],
+);
+
 export { user, session, account, verification } from "./auth-schema";
 export type Product = typeof products.$inferSelect;
 export type Order = typeof orders.$inferSelect;
@@ -247,3 +326,4 @@ export type OrderItem = typeof orderItems.$inferSelect;
 export type Entitlement = typeof entitlements.$inferSelect;
 export type Refund = typeof refunds.$inferSelect;
 export type StripeSyncLog = typeof stripeSyncLog.$inferSelect;
+export type OutboxJob = typeof outboxJobs.$inferSelect;

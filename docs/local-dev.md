@@ -36,6 +36,7 @@ npm run dev            # http://localhost:3000
 | `npm run build`                                                | Production build                                              |
 | `npm run lint` / `npm run typecheck` / `npm run format:check`  | ESLint · TS strict · Prettier                                 |
 | `npm run docs:check`                                           | Docs ↔ filesystem parity (architecture §11)                   |
+| `npm run outbox:drain`                                         | Drain outbox (réconciliation persistée + reçus/avis)          |
 | `npm run docs:lint`                                            | markdownlint (relaxed config, `.markdownlint-cli2.jsonc`)     |
 | `npm run test:coverage`                                        | Tests + coverage floor on checkout/library (L5.3)             |
 | `npm test`                                                     | Unit / integration (integration skips without `DATABASE_URL`) |
