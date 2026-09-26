@@ -94,7 +94,8 @@ graph TB
   confirmation par webhook signé, révocation conditionnelle.
 - **features/catalog-import** : import Gutendex (Project Gutenberg) — mapper,
   orchestrateur, dépôt ; licence et `source`/`source_id` enregistrées par produit.
-- **features/admin** : CRUD produits, dashboard, gestion commandes, exceptions de
+- **features/admin** : CRUD produits (+ publication groupée, export/import CSV
+  par upsert de slug avec simulation — L6.3), dashboard, gestion commandes, exceptions de
   paiement, réconciliation (rôle admin).
 - **shared/** : UI, config, types, lib (validation, erreurs typées) — aucun I/O.
 - **server/db** : schéma Drizzle + connexion + migrations.

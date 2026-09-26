@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { queryAdminProducts } from "@/features/admin/application/admin-product-service";
+import { BulkProductToolbar } from "@/features/admin/ui/bulk-product-toolbar";
 import { ProductRowActions } from "@/features/admin/ui/product-row-actions";
 import { Pagination } from "@/features/products/ui/pagination";
 import { formatPrice } from "@/shared/lib/format";
@@ -91,15 +92,23 @@ export default async function AdminProductsPage({
         </button>
       </form>
 
+      <BulkProductToolbar
+        exportHref={`/api/admin/products/export${params.toString() ? `?${params}` : ""}`}
+      />
+      <form id="bulk-form" aria-hidden className="hidden" />
+
       {result.items.length === 0 ? (
         <div className="mt-12 rounded-xl border border-dashed border-neutral-300 py-16 text-center">
           <p className="text-lg text-neutral-500">Aucun produit.</p>
         </div>
       ) : (
-        <div className="mt-6 overflow-x-auto rounded-xl border border-neutral-200">
+        <div className="mt-4 overflow-x-auto rounded-xl border border-neutral-200">
           <table className="min-w-full divide-y divide-neutral-200 text-left text-sm">
             <thead className="bg-neutral-50 text-xs uppercase tracking-wide text-neutral-500">
               <tr>
+                <th scope="col" className="px-3 py-3">
+                  <span className="sr-only">Sélection</span>
+                </th>
                 <th scope="col" className="px-4 py-3 font-medium">
                   Titre
                 </th>
@@ -129,6 +138,15 @@ export default async function AdminProductsPage({
             <tbody className="divide-y divide-neutral-100 bg-white">
               {result.items.map((p) => (
                 <tr key={p.id} className="hover:bg-neutral-50">
+                  <td className="px-3 py-3">
+                    <input
+                      type="checkbox"
+                      name="ids"
+                      value={p.id}
+                      form="bulk-form"
+                      aria-label={`Sélectionner ${p.title}`}
+                    />
+                  </td>
                   <td className="max-w-[14rem] truncate px-4 py-3 font-medium" title={p.title}>
                     {p.title}
                   </td>

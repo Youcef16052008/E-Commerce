@@ -181,7 +181,14 @@ question is answered by an ADR. **Met 2026-09-26** (L5.1–L5.5; CI now runs
       (pure, operator-safe), relevance ordering by default. `EXPLAIN` shows
       `Bitmap Index Scan on products_search_vector_idx`. 5 unit + 5 integration
       tests (accents both ways, prefix, author/description, AND, hostile input).
-- [ ] **L6.3** Admin: bulk publish, CSV import/export.
+- [x] **L6.3** Admin: bulk publish, CSV import/export. 2026-09-26:
+      `POST /api/admin/products/bulk` (publish/unpublish ≤ 500 ids),
+      `GET /api/admin/products/export` (CSV UTF-8 BOM, list filters),
+      `POST /api/admin/products/import[?apply=1]` (RFC 4180 parser, upsert by
+      slug, dry-run default, any row error blocks the whole write, 2 MB cap);
+      toolbar + row checkboxes on `/admin/products`. 8 unit + 4 integration
+      tests; curl chain as admin: 401×3 anon → export 200 (12 rows) → dry-run →
+      apply `created:1` → bulk publish → verified → deleted.
 - [ ] **L6.4** Lighthouse CI budget: LCP < 1.8 s on `/` and `/products`.
 - [ ] **L6.5** Portfolio case study (slice 11) built from the ADRs.
 - [ ] **L6.6** _(decision point, post-deploy)_ boundary lint
@@ -189,7 +196,10 @@ question is answered by an ADR. **Met 2026-09-26** (L5.1–L5.5; CI now runs
       part of audit Rev B adopted; folder **renames stay deferred**.
 
 **Lot 6 DoD** — three features a user would notice, none touching the payment
-core, and one metric you can point at in an interview.
+core, and one metric you can point at in an interview. **Three picked and
+shipped 2026-09-26: L6.1 outbox, L6.2 FTS, L6.3 admin bulk/CSV.** Metric: FTS
+query plan = `Bitmap Index Scan on products_search_vector_idx` (GIN), coverage
+floor on money paths (checkout L 84 %). L6.4/L6.5/L6.6 remain optional.
 
 ## Defect → lot traceability
 
