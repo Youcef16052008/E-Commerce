@@ -45,14 +45,18 @@ export async function Header() {
                 Admin
               </Link>
             )}
-            <span className="flex items-center gap-2 text-sm text-neutral-700">
+            <Link
+              href="/account"
+              className="flex items-center gap-2 text-sm text-neutral-700 hover:text-neutral-900"
+              title="Mon compte"
+            >
               {user.name}
               {user.role === "admin" && (
                 <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-500">
                   admin
                 </span>
               )}
-            </span>
+            </Link>
             <LogoutButton />
           </div>
         ) : (

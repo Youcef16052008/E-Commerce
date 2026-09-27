@@ -39,7 +39,7 @@ export function CatalogFilters({ genres }: { genres: string[] }) {
           type="search"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Rechercher un titre, un auteur…"
+          placeholder="Rechercher un titre, un auteur, un thème…"
           className="flex-1 rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900"
         />
         <button

@@ -3,7 +3,8 @@
 ## 1. Vue générale
 
 Modular monolith (default). Next.js 16 App Router, server-first. Architecture orientée
-**features** (domain / application / infrastructure / ui). La base de données n'est jamais
+**features** (domain / application / infrastructure / ui — règle vérifiée par ESLint
+`no-restricted-imports`, voir `eslint.config.mjs`). La base de données n'est jamais
 touchée depuis le client ; toute mutation passe par Server Actions ou Route Handlers
 avec validation et autorisation côté serveur.
 
@@ -68,7 +69,15 @@ graph TB
 ## 2. Responsabilités
 
 - **features/authentication** : Better Auth (email/password), sessions, RBAC.
-- **features/products** : catalogue, recherche, filtres, page produit (lecture publique).
+- **features/account** : RGPD — export JSON (accès/portabilité) et suppression du
+  compte (hard delete sans commande, anonymisation sinon : les commandes sont
+  des pièces comptables conservées 10 ans ; refus si checkout/remboursement en
+  cours). Ne touche ni Stripe ni la machine à états.
+- **features/products** : catalogue, filtres, page produit (lecture publique) ;
+  recherche plein texte Postgres (L6.2) : colonne générée `search_vector`
+  (titre A > auteur B > description C > genre D, `simple` + `biblio_unaccent`),
+  index GIN, préfixes, tri par pertinence — `domain/search-query.ts` construit
+  la tsquery (jamais d'opérateur utilisateur).
 - **features/cart** : panier persistant (BDD), ajout/retrait, quantité strictement 1.
 - **features/checkout** : création Stripe Checkout Session, gestion webhooks, idempotence,
   délivrance d'entitlements (transaction `stripe_events` → `paid` → grants → panier).
@@ -77,16 +86,25 @@ graph TB
   « entitlements » du domaine ; le dossier s'appelle `library/` car il porte aussi
   la page et l'API `/api/me/library`.
 - **features/orders** : commandes, historique, statuts (machine à états des transitions).
+- **features/outbox** : table `outbox_jobs` drainée par `/api/cron/outbox` ou
+  `npm run outbox:drain` — `reconcile_payments` (matérialise les écarts en
+  `payment_exception_rows`, la page admin est une vue dessus), `send_receipts`
+  et `send_refund_notices` (modèle _pull_ : lit l'état des commandes, journalise
+  dans `mail_log`, tag unique = idempotence). Aucun handler Stripe modifié.
 - **features/refunds** : réservation `refund_pending`, appel Stripe idempotent,
   confirmation par webhook signé, révocation conditionnelle.
 - **features/catalog-import** : import Gutendex (Project Gutenberg) — mapper,
   orchestrateur, dépôt ; licence et `source`/`source_id` enregistrées par produit.
-- **features/admin** : CRUD produits, dashboard, gestion commandes, exceptions de
+- **features/admin** : CRUD produits (+ publication groupée, export/import CSV
+  par upsert de slug avec simulation — L6.3), dashboard, gestion commandes, exceptions de
   paiement, réconciliation (rôle admin).
 - **shared/** : UI, config, types, lib (validation, erreurs typées) — aucun I/O.
 - **server/db** : schéma Drizzle + connexion + migrations.
 - **server/payments** : passerelle Stripe (session, webhook, refunds).
 - **server/storage** : adaptateur R2/S3/MinIO (URLs pré-signées).
+- **server/mail** : e-mail transactionnel (reçu, remboursement) — provider par
+  `MAIL_PROVIDER` (console | resend | postmark | ses), templates purs, envoi
+  best-effort hors transaction (ADR-010).
 
 ## 3. Modèle de données (ERD)
 
@@ -221,17 +239,22 @@ erDiagram
 > Généré depuis l'arbre réel (`src/` au 2026-09-25) et **vérifié par
 > `npm run docs:check`** — un écart entre ce bloc et le disque casse la CI.
 
-```
+```text
 src/
 ├── app/                      # App Router : routes, layouts, pages (aucune règle métier)
 │   ├── admin/                # back-office (dashboard, produits, commandes, paiements)
 │   ├── api/                  # route handlers (auth, cart, checkout, products,
-│   │                         #   me/*, admin/*, webhooks/stripe, covers/gutenberg)
+│   │                         #   me/* (library, orders, export, account),
+│   │                         #   admin/*, webhooks/stripe, covers/gutenberg,
+│   │                         #   cron/outbox (Vercel Cron, Bearer CRON_SECRET))
 │   ├── auth/                 # pages sign-in / sign-up
+│   ├── account/              # mon compte : export RGPD + suppression
 │   ├── cart/ checkout/ library/ orders/   # pages boutique
+│   ├── legal/                # mentions, CGV, confidentialité, licence de contenu
 │   ├── products/             # catalogue + page produit
 │   └── error.tsx, layout.tsx, page.tsx
 ├── features/                 # modules de capacité (domain/application/infrastructure/ui)
+│   ├── account/              # RGPD : export de données, suppression/anonymisation
 │   ├── admin/                # CRUD, dashboard/stats, statuts, exceptions, réconciliation
 │   ├── authentication/       # Better Auth, sessions, RBAC
 │   ├── cart/                 # panier persistant (quantité = 1)
@@ -239,20 +262,22 @@ src/
 │   ├── checkout/             # sessions Stripe, webhooks, idempotence, fulfillment
 │   ├── library/              # entitlements : droits, bibliothèque, downloads
 │   ├── orders/               # commandes, historique, machine à états
-│   ├── products/             # catalogue public (lecture, recherche, filtres)
+│   ├── outbox/               # file durable : réconciliation persistée, reçus/avis (pull)
+│   ├── products/             # catalogue public (lecture, recherche FTS, filtres)
 │   └── refunds/              # remboursements Stripe (refund_pending → webhook)
 ├── server/
 │   ├── db/                   # schéma Drizzle + connexion
+│   ├── mail/                 # e-mail transactionnel (console/Resend/Postmark/SES)
 │   ├── payments/             # passerelle Stripe
 │   └── storage/              # adaptateur R2/S3/MinIO (pré-signé)
 └── shared/                   # ui, lib, config (aucun I/O)
     ├── config/               # rôles, constantes partagées
     ├── lib/                  # format, slugify
-    └── ui/                   # header, composants présentation
+    └── ui/                   # header, footer, composants présentation
 tests/
 ├── unit/ integration/ e2e/
 docs/
-├── adr/                      # décisions structurantes (001…007)
+├── adr/                      # décisions structurantes (001…010)
 ├── reviews/                  # revues datées archivées (audit, durcissement…)
 └── architecture.md, product.md, local-dev.md, runbook-deploy.md, …
 ```
@@ -260,4 +285,5 @@ docs/
 ## 12. Décisions structurantes
 
 - `docs/adr/001-framework.md` · `002-database.md` · `003-authentication.md`
-- `004-payments.md` · `005-deployment.md`
+- `004-payments.md` · `005-deployment.md` · `006-storage.md` · `007-catalog-import.md`
+- `008-partial-refunds.md` · `009-vat-and-tax-status.md` · `010-transactional-email.md`

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { viewPaymentExceptions } from "@/features/admin/application/payment-exceptions-service";
+import { viewPersistedExceptions } from "@/features/outbox/application/exceptions-view-service";
 import {
   PAYMENT_EXCEPTION_KINDS,
   PAYMENT_EXCEPTION_LABELS,
@@ -16,12 +16,16 @@ function shortId(id: string) {
   return id.length > 12 ? `${id.slice(0, 10)}…` : id;
 }
 
+const fmt = new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" });
+
 /**
  * The page is deliberately read-only. It makes discrepancies visible without
  * offering a dangerous “mark paid/refunded” action outside Stripe.
+ * Since L6.1 it is a VIEW over rows persisted by the `reconcile_payments`
+ * outbox job (Vercel Cron / `npm run outbox:drain`), not a live recomputation.
  */
 export default async function AdminPaymentExceptionsPage() {
-  const report = await viewPaymentExceptions();
+  const report = await viewPersistedExceptions();
 
   return (
     <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">
@@ -30,6 +34,20 @@ export default async function AdminPaymentExceptionsPage() {
         Contrôle de cohérence entre les commandes, les identifiants Stripe et les droits d’accès.
         Cette liste est en lecture seule : ne marquez jamais une commande payée ou remboursée sans
         la confirmation Stripe correspondante.
+      </p>
+      <p className="mt-2 text-sm text-neutral-500">
+        {report.lastRunAt ? (
+          <>
+            Dernier contrôle automatique : {fmt.format(report.lastRunAt)} (outbox{" "}
+            <code>reconcile_payments</code>).
+          </>
+        ) : (
+          <>
+            Aucun contrôle enregistré pour l’instant : lancez <code>npm run outbox:drain</code> ou
+            attendez le Cron quotidien.
+          </>
+        )}{" "}
+        Contrôle immédiat en ligne de commande : <code>npm run payments:reconcile</code>.
       </p>
 
       <section
@@ -48,11 +66,10 @@ export default async function AdminPaymentExceptionsPage() {
         <section className="mt-8 rounded-xl border border-emerald-200 bg-emerald-50 px-6 py-10 text-center">
           <h2 className="text-lg font-semibold text-emerald-900">Aucun écart interne détecté</h2>
           <p className="mt-1 text-sm text-emerald-800">
-            Contrôle généré le{" "}
-            {new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(
-              report.generatedAt,
-            )}
-            . Continuez la réconciliation périodique avec Stripe avant toute clôture comptable.
+            {report.lastRunAt
+              ? `Contrôle du ${fmt.format(report.lastRunAt)}.`
+              : "En attente du premier contrôle."}{" "}
+            Continuez la réconciliation périodique avec Stripe avant toute clôture comptable.
           </p>
         </section>
       ) : (
@@ -85,7 +102,7 @@ export default async function AdminPaymentExceptionsPage() {
             </thead>
             <tbody className="divide-y divide-neutral-100">
               {report.items.map((issue) => (
-                <tr key={`${issue.kind}-${issue.orderId}-${issue.productId ?? "order"}`}>
+                <tr key={issue.id}>
                   <td className="px-4 py-3 font-medium text-amber-900">{issue.label}</td>
                   <td
                     className="px-4 py-3 font-mono text-xs text-neutral-600"
@@ -93,7 +110,7 @@ export default async function AdminPaymentExceptionsPage() {
                   >
                     {shortId(issue.orderId)}
                     <div className="mt-0.5 font-sans text-xs text-neutral-500">
-                      {issue.createdAtLabel}
+                      vu depuis {issue.firstSeenLabel}
                     </div>
                   </td>
                   <td className="px-4 py-3">
@@ -111,13 +128,14 @@ export default async function AdminPaymentExceptionsPage() {
                     {issue.totalFormatted}
                   </td>
                   <td className="px-4 py-3 text-neutral-600">
-                    {issue.productTitle && <div>Droit manquant : {issue.productTitle}</div>}
-                    {issue.checkoutExpiresAtLabel && (
-                      <div>Expiration Checkout : {issue.checkoutExpiresAtLabel}</div>
-                    )}
-                    {!issue.productTitle && !issue.checkoutExpiresAtLabel && (
+                    {issue.productTitle ? (
+                      <div>Droit manquant : {issue.productTitle}</div>
+                    ) : (
                       <div>Vérifier l’objet Stripe lié à cette commande.</div>
                     )}
+                    <div className="text-xs text-neutral-400">
+                      dernière observation : {issue.lastSeenLabel}
+                    </div>
                   </td>
                 </tr>
               ))}

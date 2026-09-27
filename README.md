@@ -31,9 +31,17 @@ mode), personal library with presigned downloads, and an admin back office.
 - **Files never pass through the app** — entitlement check first, then a
   15-minute presigned SigV4 URL. MinIO locally, Cloudflare R2 in production,
   same code, env-only switch (ADR-006).
+- **GDPR built in, not bolted on** — JSON data export and self-service
+  account deletion (hard delete, or anonymisation when orders must be kept as
+  accounting records), a `/legal` page stating the content licence (public
+  domain texts, DRM-free personal licence).
+- **Search is Postgres, not a SaaS** — a generated, weighted `tsvector`
+  (title > author > description > genre) with `unaccent` and a GIN index;
+  prefix matching and relevance ranking, zero extra infrastructure.
 - **Real CI** — Postgres 17 service → migrate → seed → unit/integration →
   build → Playwright e2e, on Node 24. `npm run docs:check` fails the build if
-  the architecture doc drifts from the filesystem.
+  the architecture doc drifts from the filesystem; a coverage floor (70 %) guards
+  the checkout and entitlement paths.
 
 ## Quickstart
 
@@ -47,17 +55,18 @@ Local demo credentials, storage, imports and the full command table:
 
 ## Documentation
 
-| Doc                                                                                           | What                                                                      |
-| --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| [`STATUS.md`](STATUS.md)                                                                      | Single source of truth: slices, validation ledger, versions               |
-| [`docs/fix-plan.md`](docs/fix-plan.md)                                                        | Audit defects → lots → DoD (what happens next)                            |
-| [`docs/product.md`](docs/product.md)                                                          | Problem, personas, user stories, scope                                    |
-| [`docs/architecture.md`](docs/architecture.md)                                                | Architecture, ERD, API contracts, folder tree                             |
-| [`docs/adr/`](docs/adr/)                                                                      | Decision records (framework, DB, auth, payments, deploy, storage, import) |
-| [`docs/deploy-preflight.md`](docs/deploy-preflight.md)                                        | Pre-flight gate + `npm run smoke` before/after each deploy                |
-| [`docs/runbook-deploy.md`](docs/runbook-deploy.md)                                            | Vercel + Neon + R2 deployment runbook                                     |
-| [`docs/accessibility.md`](docs/accessibility.md) · [`docs/lighthouse.md`](docs/lighthouse.md) | a11y audit · measured scores                                              |
-| [`docs/local-dev.md`](docs/local-dev.md)                                                      | Local setup, commands, MinIO, Gutenberg import                            |
+| Doc                                                                                           | What                                                                                           |
+| --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| [`STATUS.md`](STATUS.md)                                                                      | Single source of truth: slices, validation ledger, versions                                    |
+| [`docs/fix-plan.md`](docs/fix-plan.md)                                                        | Audit defects → lots → DoD (what happens next)                                                 |
+| [`docs/case-study.md`](docs/case-study.md)                                                    | Portfolio case study: decisions, guard-rails, evidenced numbers                                |
+| [`docs/product.md`](docs/product.md)                                                          | Problem, personas, user stories, scope                                                         |
+| [`docs/architecture.md`](docs/architecture.md)                                                | Architecture, ERD, API contracts, folder tree                                                  |
+| [`docs/adr/`](docs/adr/)                                                                      | Decision records (framework, DB, auth, payments, deploy, storage, import, refunds, VAT, email) |
+| [`docs/deploy-preflight.md`](docs/deploy-preflight.md)                                        | Pre-flight gate + `npm run smoke` before/after each deploy                                     |
+| [`docs/runbook-deploy.md`](docs/runbook-deploy.md)                                            | Vercel + Neon + R2 deployment runbook                                                          |
+| [`docs/accessibility.md`](docs/accessibility.md) · [`docs/lighthouse.md`](docs/lighthouse.md) | a11y audit · measured scores                                                                   |
+| [`docs/local-dev.md`](docs/local-dev.md)                                                      | Local setup, commands, MinIO, Gutenberg import                                                 |
 
 ## Stack
 

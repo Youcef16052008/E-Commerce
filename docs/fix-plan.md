@@ -96,9 +96,9 @@ No system Postgres here → attempt an npm-installable local Postgres (or PGlite
   admin dashboard) into `docs/screenshots/`, wire them **above the fold** in both
   READMEs.
 
-* [x] **L3.1** Local DB up (or honest "blocked" note in STATUS).
-* [x] **L3.2** Six screenshots captured + committed.
-* [x] **L3.3** README screenshot slots filled.
+- [x] **L3.1** Local DB up (or honest "blocked" note in STATUS).
+- [x] **L3.2** Six screenshots captured + committed.
+- [x] **L3.3** README screenshot slots filled.
 
 **Lot 3 DoD** — the repo shows the product without anyone running it.
 
@@ -124,33 +124,92 @@ downloads it intact, sees the order in `/admin`.
 
 ## Lot 5 — Trust (weeks 2–4)
 
-- [ ] **L5.1** `platform/mail` interface (Resend/Postmark/SES by env, like
-      storage) + receipt & refund templates. _(D-05)_
-- [ ] **L5.2** GDPR: account deletion, data export, `/legal` page, content
-      licence statement. _(D-06)_
-- [ ] **L5.3** Coverage floor 70 % on checkout + entitlements paths in CI.
-- [ ] **L5.4** ADR-008 partial refunds · ADR-009 VAT/micro-enterprise ·
-      ADR-010 transactional email.
-- [ ] **L5.5** markdownlint in CI with a relaxed config (baseline run first —
+- [x] **L5.1** `platform/mail` interface (Resend/Postmark/SES by env, like
+      storage) + receipt & refund templates. _(D-05)_ Delivered
+      `src/server/mail/{index,providers,templates}.ts` + `tests/unit/mail.test.ts`
+      (18 tests, no network); `MAIL_PROVIDER=console` default keeps dev/CI silent.
+      Wiring into webhook/refund handlers is deliberately deferred (standing rule 1)
+      — see ADR-010 (L5.4). Re-done 2026-09-26 after the first commit was lost to
+      a sandbox re-clone.
+- [x] **L5.2** GDPR: account deletion, data export, `/legal` page, content
+      licence statement. _(D-06)_ Delivered `src/features/account/*`,
+      `GET /api/me/export` (JSON attachment), `DELETE /api/me/account`
+      (`{confirm:"SUPPRIMER"}`; hard delete without orders, anonymisation with
+      orders — accounting retention; 409 while a checkout/refund is in flight;
+      403 for admins), `/account` page, `/legal` (éditeur · CGV · RGPD · licence),
+      footer + sign-up consent line + licence note on product page.
+      Tests: 8 unit + 4 integration (local PG 17, 2026-09-26) + HTTP chain
+      401/400/200/hard/401 on dev server.
+- [x] **L5.3** Coverage floor 70 % on checkout + entitlements paths in CI.
+      `vitest.config.mts` `coverage.thresholds` per glob
+      (`src/features/{checkout,library}/**/!(*.tsx)`: lines/statements/functions
+      70, branches 70 library / 65 checkout — measured 2026-09-26: checkout
+      L 84.2 · S 79.8 · F 89.2 · B 70.4 %, library L/S/F ≥ 99 · B 90 %); CI step
+      `npm run test:coverage` replaces `npm test`. Floor verified to bite (99 %
+      trial → exit 1). +4 unit tests on the presigned-download path.
+- [x] **L5.4** ADR-008 partial refunds · ADR-009 VAT/micro-enterprise ·
+      ADR-010 transactional email. Written 2026-09-26 (`docs/adr/008…010`):
+      no partial refunds in phase 1 (per-line refund is the only admissible
+      extension, schema sketched); no tax collected while test-mode, regime
+      A/B/C is a launch blocker in runbook §1; mail = env-gated adapter,
+      best-effort after commit, wiring via the L6.1 outbox.
+- [x] **L5.5** markdownlint in CI with a relaxed config (baseline run first —
       if legacy noise is large, fix rules not the whole archive in one pass).
+      Baseline 2026-09-26: 709 errors (680 MD013 line-length, 29 in
+      `docs/reviews/**`, 5 live). Config `.markdownlint-cli2.jsonc`: MD013 off
+      (Prettier owns wrapping), MD024 siblings-only, archive + `CLAUDE.md`
+      ignored; the 5 live errors fixed. `npm run docs:lint` in CI; verified to
+      fail on an injected bare URL (exit 1).
 
 **Lot 5 DoD** — green CI includes docs parity + coverage; every open financial
-question is answered by an ADR.
+question is answered by an ADR. **Met 2026-09-26** (L5.1–L5.5; CI now runs
+`docs:check` + `docs:lint` + `test:coverage`; ADR-008/009/010 written).
 
 ## Lot 6 — Reliability & growth (weeks 5–8, pick 3)
 
-- [ ] **L6.1** Outbox table + Vercel Cron route draining it; exceptions page
+- [x] **L6.1** Outbox table + Vercel Cron route draining it; exceptions page
       becomes a view over real rows; hand-run CLIs stay as manual override. _(D-11)_
-- [ ] **L6.2** Search over 512 products — Postgres FTS, no new infrastructure.
-- [ ] **L6.3** Admin: bulk publish, CSV import/export.
+      Delivered 2026-09-26: migration `0008_outbox` (`outbox_jobs`, `mail_log`,
+      `payment_exception_rows`), `src/features/outbox/*`, `GET /api/cron/outbox`
+      (Bearer `CRON_SECRET`, 503 if unset), `vercel.json` daily cron (Hobby
+      limit; Pro may go hourly), `npm run outbox:drain` override, admin
+      `/admin/payments` now reads persisted rows + last run. Also wires ADR-010
+      mail by _pull_ (no webhook change). 6 unit + 3 integration tests.
+- [x] **L6.2** Search over 512 products — Postgres FTS, no new infrastructure.
+      2026-09-26: migration `0009_products_fts` (`unaccent` + IMMUTABLE wrapper,
+      generated `search_vector` weighted A–D, GIN index), `toPrefixTsQuery`
+      (pure, operator-safe), relevance ordering by default. `EXPLAIN` shows
+      `Bitmap Index Scan on products_search_vector_idx`. 5 unit + 5 integration
+      tests (accents both ways, prefix, author/description, AND, hostile input).
+- [x] **L6.3** Admin: bulk publish, CSV import/export. 2026-09-26:
+      `POST /api/admin/products/bulk` (publish/unpublish ≤ 500 ids),
+      `GET /api/admin/products/export` (CSV UTF-8 BOM, list filters),
+      `POST /api/admin/products/import[?apply=1]` (RFC 4180 parser, upsert by
+      slug, dry-run default, any row error blocks the whole write, 2 MB cap);
+      toolbar + row checkboxes on `/admin/products`. 8 unit + 4 integration
+      tests; curl chain as admin: 401×3 anon → export 200 (12 rows) → dry-run →
+      apply `created:1` → bulk publish → verified → deleted.
 - [ ] **L6.4** Lighthouse CI budget: LCP < 1.8 s on `/` and `/products`.
-- [ ] **L6.5** Portfolio case study (slice 11) built from the ADRs.
-- [ ] **L6.6** _(decision point, post-deploy)_ boundary lint
-      (`import/no-restricted-paths`) for the Rule-01 dependency rule — the only
-      part of audit Rev B adopted; folder **renames stay deferred**.
+- [x] **L6.5** Portfolio case study (slice 11) built from the ADRs.
+      2026-09-26: `docs/case-study.md` (EN) — decisions table over ADR-004/006/
+      008/009/010, guard-rails table, evidenced numbers, reading order; linked
+      from both READMEs; `docs:lint` 0.
+- [x] **L6.6** boundary lint for the Rule-01 dependency rule — the only part of
+      audit Rev B adopted; folder **renames stay deferred**. 2026-09-26: done
+      pre-deploy with core `no-restricted-imports` (no plugin) in
+      `eslint.config.mjs`: `domain/` ⊥ framework/DB/server/outer layers;
+      `application/`+`infrastructure/` ⊥ UI/routes; `server/`+`shared/lib/` ⊥
+      features. Baseline: 0 violations on the real tree (`npm run lint` clean);
+      two injected probes (domain→`@/server/db`, server→feature) → 2 Rule-01
+      errors. `shared/ui/header.tsx` composes feature widgets by design and is
+      outside the leaf rule.
 
 **Lot 6 DoD** — three features a user would notice, none touching the payment
-core, and one metric you can point at in an interview.
+core, and one metric you can point at in an interview. **Three picked and
+shipped 2026-09-26: L6.1 outbox, L6.2 FTS, L6.3 admin bulk/CSV.** Metric: FTS
+query plan = `Bitmap Index Scan on products_search_vector_idx` (GIN), coverage
+floor on money paths (checkout L 84 %). L6.5 and L6.6 shipped the same day; only L6.4 (Lighthouse, needs the live URL)
+remains.
 
 ## Defect → lot traceability
 

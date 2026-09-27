@@ -72,31 +72,37 @@
 
 1. Vercel → « Add New… » → **Project** → importer le repo GitHub.
 2. Framework détecté : **Next.js** (ne rien modifier dans la build command :
-   `next build`). **Aucun `vercel.json` requis** (les headers de sécurité sont
-   déclarés dans `next.config.ts` et appliqués par Next au build ; le webhook
-   est appelé directement sur son path par Stripe).
+   `next build`). Le `vercel.json` du dépôt ne déclare **que** le Cron quotidien
+   `/api/cron/outbox` (03:00 UTC — cadence maximale du plan Hobby ; passer à
+   `0 * * * *` en Pro). Les headers de sécurité restent dans `next.config.ts` ;
+   le webhook est appelé directement sur son path par Stripe.
 3. **Environment Variables** (Project → Settings → Environment Variables) sur
    les scopes **Production + Preview** :
 
-   | Variable                    | Valeur                                                                        |
-   | --------------------------- | ----------------------------------------------------------------------------- |
-   | `DATABASE_URL`              | connection string Neon (branche `production`)                                 |
-   | `BETTER_AUTH_SECRET`        | `openssl rand -base64 32` (nouveau, prod)                                     |
-   | `BETTER_AUTH_URL`           | **l'URL HTTPS publique** (ex. `https://<slug>.vercel.app`) — CRITIQUE cookies |
-   | `STRIPE_SECRET_KEY`         | `sk_test_…` (mode test)                                                       |
-   | `STRIPE_WEBHOOK_SECRET`     | `whsec_…` (après l'étape 4)                                                   |
-   | `STRIPE_TAX_CODE`           | vide (Managed Payments désactivé)                                             |
-   | `STORAGE_ACCOUNT_ID`        | ID compte R2                                                                  |
-   | `STORAGE_ACCESS_KEY_ID`     | key id du token                                                               |
-   | `STORAGE_SECRET_ACCESS_KEY` | secret du token                                                               |
-   | `STORAGE_BUCKET`            | `biblio`                                                                      |
-   | `STORAGE_REGION`            | `auto`                                                                        |
-   | `STORAGE_FORCE_PATH_STYLE`  | `true`                                                                        |
+   | Variable                                       | Valeur                                                                        |
+   | ---------------------------------------------- | ----------------------------------------------------------------------------- |
+   | `DATABASE_URL`                                 | connection string Neon (branche `production`)                                 |
+   | `BETTER_AUTH_SECRET`                           | `openssl rand -base64 32` (nouveau, prod)                                     |
+   | `BETTER_AUTH_URL`                              | **l'URL HTTPS publique** (ex. `https://<slug>.vercel.app`) — CRITIQUE cookies |
+   | `STRIPE_SECRET_KEY`                            | `sk_test_…` (mode test)                                                       |
+   | `STRIPE_WEBHOOK_SECRET`                        | `whsec_…` (après l'étape 4)                                                   |
+   | `STRIPE_TAX_CODE`                              | vide (Managed Payments désactivé)                                             |
+   | `STORAGE_ACCOUNT_ID`                           | ID compte R2                                                                  |
+   | `STORAGE_ACCESS_KEY_ID`                        | key id du token                                                               |
+   | `STORAGE_SECRET_ACCESS_KEY`                    | secret du token                                                               |
+   | `STORAGE_BUCKET`                               | `biblio`                                                                      |
+   | `STORAGE_REGION`                               | `auto`                                                                        |
+   | `STORAGE_FORCE_PATH_STYLE`                     | `true`                                                                        |
+   | `CRON_SECRET`                                  | `openssl rand -hex 24` — Vercel l'envoie en Bearer au Cron ; sans lui, 503    |
+   | `MAIL_PROVIDER` / `MAIL_FROM` / `MAIL_API_KEY` | option (ADR-010) ; défaut `console` = aucun envoi                             |
 
    > ⚠️ Si `BETTER_AUTH_URL` n'est pas l'URL https publique, la session est
    > émise sur le mauvais domaine → « déconnecté » permanent.
    > Les clés `sk_live_` / `rk_live_` sont refusées par le code : ne renseigner
    > qu’un compte Stripe test dans tous les environnements de cette phase.
+   > Avant toute clé live (phase 2) : régime TVA choisi et validé (ADR-009,
+   > voie A/B/C), domaine expéditeur vérifié pour `MAIL_FROM` (ADR-010),
+   > mentions `/legal` § 1 complétées (éditeur, contact).
 
 4. **Deployment protection** (option conseillé) : les previews restent
    publiques mais peuvent être protégées par password (Vercel → Deployments).

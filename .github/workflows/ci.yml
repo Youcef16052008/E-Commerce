@@ -56,14 +56,17 @@ jobs:
       - name: Docs ↔ source parity
         run: npm run docs:check
 
+      - name: Markdown lint (relaxed config, see .markdownlint-cli2.jsonc)
+        run: npm run docs:lint
+
       - name: Apply DB migrations
         run: npm run db:migrate
 
       - name: Seed demo data
         run: npm run seed:all
 
-      - name: Unit / integration tests
-        run: npm test
+      - name: Unit / integration tests + coverage floor (checkout, entitlements ≥ 70 %)
+        run: npm run test:coverage
 
       - name: Build
         run: npm run build

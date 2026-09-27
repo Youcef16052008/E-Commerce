@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { Footer } from "@/shared/ui/footer";
 import { Header } from "@/shared/ui/header";
 import "./globals.css";
 
@@ -30,6 +31,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <div id="contenu-principal" tabIndex={-1} className="flex flex-1 flex-col outline-none">
           {children}
         </div>
+        <Footer />
       </body>
     </html>
   );
